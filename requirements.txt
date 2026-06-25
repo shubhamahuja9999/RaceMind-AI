@@ -1,0 +1,15 @@
+# RaceMind AI — Phase 1 dependencies
+# Python 3.12+ recommended (works on 3.10+).
+
+# --- Core simulator ---
+gymnasium[box2d]>=1.0.0     # CarRacing-v3 environment
+box2d==2.3.10               # physics backend for CarRacing (pre-built wheel, no C++ compiler needed)
+pygame>=2.5.0              # rendering, keyboard control and replay
+numpy>=1.26.0
+pandas>=2.1.0
+opencv-python>=4.9.0
+matplotlib>=3.8.0
+
+# --- Reserved for later phases (installed now, not used in Phase 1) ---
+stable-baselines3>=2.3.0
+torch>=2.2.0
