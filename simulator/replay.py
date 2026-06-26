@@ -24,13 +24,16 @@ try:  # pygame is only needed for on-screen display, not for loading.
 except ImportError:  # pragma: no cover - display is optional
     pygame = None  # type: ignore[assignment]
 
-from config.config import SimulatorConfig, default_config
+from config.simulator import SimulatorConfig, default_config
 from simulator.recorder import (
     ACTIONS_KEY,
     FRAMES_KEY,
     METADATA_KEY,
     REWARDS_KEY,
 )
+from utils.logger import get_logger
+
+_logger = get_logger(__name__)
 
 
 @dataclass
@@ -187,10 +190,11 @@ def main() -> None:
     args = _parse_args()
     config = default_config()
     episode = load_episode(args.recording)
-    print(
-        f"Loaded episode {episode.metadata.get('episode')} "
-        f"with {episode.num_frames} frames "
-        f"(total reward = {episode.metadata.get('total_reward'):+.3f})"
+    _logger.info(
+        "Loaded episode %s with %d frames (total reward = %+.3f)",
+        episode.metadata.get("episode"),
+        episode.num_frames,
+        episode.metadata.get("total_reward", 0.0),
     )
     ReplayPlayer(config).play(episode)
 

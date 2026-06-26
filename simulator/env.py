@@ -15,7 +15,30 @@ from typing import Any, Optional
 import gymnasium as gym
 import numpy as np
 
-from config.config import SimulatorConfig, default_config
+from config.simulator import SimulatorConfig, default_config
+from utils.logger import get_logger
+
+_logger = get_logger(__name__)
+
+
+def build_gym_env(config: SimulatorConfig) -> gym.Env:
+    """Construct the raw Gymnasium environment described by ``config``.
+
+    This is the single place ``gym.make`` is called, so both :class:`RaceEnv`
+    and the environment factory share identical construction logic.
+
+    Args:
+        config: Simulator configuration.
+
+    Returns:
+        A freshly created (unwrapped) Gymnasium environment.
+    """
+    return gym.make(
+        config.env_name,
+        render_mode=config.render_mode,
+        continuous=config.continuous,
+        max_episode_steps=config.max_episode_steps,
+    )
 
 
 class RaceEnv:
@@ -28,23 +51,28 @@ class RaceEnv:
         with RaceEnv(config) as env:
             env.reset()
             env.step(env.sample_action())
+
+    Prefer :func:`simulator.environment_factory.make_env` over constructing
+    this class directly, so the standard wrapper stack is applied consistently.
     """
 
-    def __init__(self, config: Optional[SimulatorConfig] = None) -> None:
-        """Create the wrapped environment from a configuration.
+    def __init__(
+        self,
+        config: Optional[SimulatorConfig] = None,
+        env: Optional[gym.Env] = None,
+    ) -> None:
+        """Create or adopt the wrapped environment.
 
         Args:
             config: Simulator configuration; the framework default is used when
                 omitted.
+            env: An already-constructed (and possibly wrapped) Gymnasium
+                environment to adopt. When omitted, one is built from ``config``.
         """
         self._config: SimulatorConfig = config or default_config()
-        self._env: gym.Env = gym.make(
-            self._config.env_name,
-            render_mode=self._config.render_mode,
-            continuous=self._config.continuous,
-            max_episode_steps=self._config.max_episode_steps,
-        )
+        self._env: gym.Env = env if env is not None else build_gym_env(self._config)
         self._step_count: int = 0
+        _logger.info("Environment initialized: %s", self._config.env_name)
 
     # ------------------------------------------------------------------
     # Read-only accessors
@@ -138,21 +166,17 @@ class RaceEnv:
 
 
 def describe_env(env: RaceEnv) -> None:
-    """Print useful debugging information about an environment.
+    """Log useful debugging information about an environment.
 
     Args:
         env: The wrapped environment to describe.
     """
-    print("=" * 60)
-    print("RaceMind AI :: Environment description")
-    print("=" * 60)
-    print(f"Environment name : {env.config.env_name}")
-    print(f"Continuous       : {env.config.continuous}")
-    print(f"Render mode      : {env.config.render_mode}")
-    print(f"Max episode steps: {env.config.max_episode_steps}")
-    print(f"Observation space: {env.observation_space}")
-    print(f"Action space     : {env.action_space}")
-    print("=" * 60)
+    _logger.info("Environment name: %s", env.config.env_name)
+    _logger.info("Continuous: %s", env.config.continuous)
+    _logger.info("Render mode: %s", env.config.render_mode)
+    _logger.info("Max episode steps: %d", env.config.max_episode_steps)
+    _logger.info("Observation space: %s", env.observation_space)
+    _logger.info("Action space: %s", env.action_space)
 
 
 def run_random_episode(
@@ -171,13 +195,16 @@ def run_random_episode(
     Returns:
         The cumulative reward earned during the episode.
     """
+    # Local import avoids a circular dependency (the factory imports this module).
+    from simulator.environment_factory import make_env
+
     config = config or default_config()
     step_limit = max_steps if max_steps is not None else config.max_episode_steps
 
-    with RaceEnv(config) as env:
+    with make_env(config) as env:
         describe_env(env)
         observation, info = env.reset()
-        print(f"Initial observation shape: {np.asarray(observation).shape}")
+        _logger.info("Initial observation shape: %s", np.asarray(observation).shape)
 
         cumulative_reward = 0.0
         for _ in range(step_limit):
@@ -186,19 +213,20 @@ def run_random_episode(
             cumulative_reward += reward
 
             if env.step_count % 50 == 0:
-                print(
-                    f"step={env.step_count:4d} "
-                    f"reward={reward:+.3f} "
-                    f"cumulative={cumulative_reward:+.3f}"
+                _logger.info(
+                    "step=%4d reward=%+.3f cumulative=%+.3f",
+                    env.step_count,
+                    reward,
+                    cumulative_reward,
                 )
 
             if terminated or truncated:
                 break
 
-        print("-" * 60)
-        print(
-            f"Episode finished after {env.step_count} steps | "
-            f"cumulative reward = {cumulative_reward:+.3f}"
+        _logger.info(
+            "Episode finished after %d steps | cumulative reward = %+.3f",
+            env.step_count,
+            cumulative_reward,
         )
         return cumulative_reward
 

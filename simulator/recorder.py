@@ -15,8 +15,11 @@ from typing import Any, Optional, Sequence
 
 import numpy as np
 
-from config.config import SimulatorConfig, default_config
-from simulator.utils import generate_timestamp, make_episode_name
+from config.simulator import SimulatorConfig, default_config
+from utils.logger import get_logger
+from utils.paths import ensure_directory, generate_timestamp, make_episode_name
+
+_logger = get_logger(__name__)
 
 # Keys used inside the ``.npz`` archive. Centralised so the recorder and the
 # replay loader cannot drift apart.
@@ -121,7 +124,7 @@ class EpisodeRecorder:
         if extra_metadata:
             metadata.extra.update(extra_metadata)
 
-        self._config.recordings_dir.mkdir(parents=True, exist_ok=True)
+        ensure_directory(self._config.recordings_dir)
         name = make_episode_name(self._config.episode_prefix, self._episode)
         path = self._config.recordings_dir / f"{name}.npz"
 
@@ -134,4 +137,5 @@ class EpisodeRecorder:
                 METADATA_KEY: np.asarray(json.dumps(asdict(metadata))),
             },
         )
+        _logger.info("Recording saved: %s", path)
         return path

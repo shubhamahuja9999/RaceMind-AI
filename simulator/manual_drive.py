@@ -21,10 +21,14 @@ from typing import Optional
 import numpy as np
 import pygame
 
-from config.config import SimulatorConfig, default_config
+from config.simulator import SimulatorConfig, default_config
 from simulator.env import RaceEnv
+from simulator.environment_factory import make_env
 from simulator.recorder import EpisodeRecorder
 from simulator.telemetry import TelemetryLogger
+from utils.logger import get_logger
+
+_logger = get_logger(__name__)
 
 # Magnitudes applied to each control axis when a key is held.
 STEER_MAGNITUDE: float = 1.0
@@ -110,15 +114,14 @@ class ManualDriveSession:
             record: When ``True``, save the episode as a ``.npz`` recording.
         """
         # The human render mode is required so the player can see the track.
-        config = self._config
-        if config.render_mode != "human":
-            print("[manual_drive] Forcing render_mode='human' for manual control.")
+        if self._config.render_mode != "human":
+            _logger.warning("render_mode is not 'human'; manual control needs a window.")
 
-        with RaceEnv(config) as env:
+        with make_env(self._config) as env:
             observation, _ = env.reset()
             self._telemetry.start_episode(episode)
             self._recorder.start_episode(episode)
-            print("Manual driving started. Arrow keys to drive, ESC to quit.")
+            _logger.info("Manual driving started (episode %d). Arrow keys to drive, ESC to quit.", episode)
 
             self._drive_loop(env, observation, record)
 
@@ -140,7 +143,9 @@ class ManualDriveSession:
             observation, reward, terminated, truncated, _ = env.step(action)
             done = terminated or truncated
 
-            self._telemetry.log(action, reward, done, step=env.step_count)
+            self._telemetry.log(
+                action, reward, done, step=env.step_count, observation=observation
+            )
             if record:
                 self._recorder.record(observation, action, reward)
 
@@ -149,11 +154,9 @@ class ManualDriveSession:
 
     def _persist(self, record: bool) -> None:
         """Write telemetry (always) and the recording (when requested)."""
-        telemetry_path = self._telemetry.save()
-        print(f"Telemetry saved to: {telemetry_path}")
+        self._telemetry.save()
         if record and self._recorder.num_frames:
-            recording_path = self._recorder.save(extra_metadata={"mode": "manual"})
-            print(f"Recording saved to: {recording_path}")
+            self._recorder.save(extra_metadata={"mode": "manual"})
 
 
 def _parse_args() -> argparse.Namespace:

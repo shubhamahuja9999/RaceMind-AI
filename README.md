@@ -7,69 +7,76 @@
 autonomous racing agent trained with Reinforcement Learning on top of
 Gymnasium's `CarRacing-v3` environment.
 
-This repository currently contains **Phase 1**: a clean, modular **simulator
-framework** that everything else will be built on. No RL, neural networks or
-training code exists yet — Phase 1 is purely the simulator boundary, manual
-control, data capture and replay tooling.
+The repository currently spans **Phase 1** (the simulator framework) and
+**Phase 1.5** (research-platform infrastructure). No RL, neural networks or
+training code exists yet — the focus is a clean, reproducible foundation that
+makes Phase 2 (PPO training) straightforward.
+
+- **Phase 1** — simulator boundary, manual driving, telemetry, recording, replay.
+- **Phase 1.5** — environment factory, Gymnasium wrappers, professional logging,
+  extended telemetry, evaluation metrics, experiment configuration, callback
+  interfaces, a structured data layout and global seeding.
 
 ---
 
 ## Project Overview
 
-Phase 1 delivers five focused capabilities, each in its own module:
-
-| Capability        | Module                      | Description                                                        |
-| ----------------- | --------------------------- | ------------------------------------------------------------------ |
-| Environment       | `simulator/env.py`          | Object-oriented wrapper around `CarRacing-v3` (`reset/step/close`). |
-| Manual driving    | `simulator/manual_drive.py` | Drive the car yourself with the arrow keys (PyGame).               |
-| Telemetry         | `simulator/telemetry.py`    | Per-frame logging of reward and controls to CSV.                  |
-| Recording         | `simulator/recorder.py`     | Save frames, actions, rewards and metadata to compressed `.npz`.  |
-| Replay            | `simulator/replay.py`       | Replay a recorded episode independently of the simulator.         |
-
-Cross-cutting concerns are isolated too: **all configuration** lives in
-`config/config.py` (no magic numbers, no hardcoded paths) and **reusable
-helpers** live in `simulator/utils.py`.
+| Capability         | Module                                    | Description                                                  |
+| ------------------ | ----------------------------------------- | ------------------------------------------------------------ |
+| Environment        | `simulator/env.py`                        | OO wrapper around `CarRacing-v3` (`reset/step/close`).       |
+| Environment factory| `simulator/environment_factory.py`        | `make_env(config)` — the only place envs are created.        |
+| Wrappers           | `simulator/wrappers/`                     | Gymnasium-convention observation/reward/action wrappers.     |
+| Manual driving     | `simulator/manual_drive.py`               | Drive with the arrow keys (PyGame).                          |
+| Telemetry          | `simulator/telemetry.py`                  | Per-frame logging (wide, optional-field schema) to CSV.      |
+| Recording          | `simulator/recorder.py`                   | Frames + actions + rewards + metadata to compressed `.npz`.  |
+| Replay             | `simulator/replay.py`                     | Replay a recording independently of the simulator.           |
+| Evaluation         | `evaluation/`                             | Episode metrics and serialisable summaries (dataclasses).    |
+| Logging            | `utils/logger.py`                         | Console + `logs/project.log`, configured once.               |
+| Seeding            | `utils/seed.py`                           | `set_global_seed` — Python / NumPy / PyTorch (if installed). |
+| Configuration      | `config/`                                 | Simulator, experiment, logging and path configuration.       |
+| Callbacks          | `training/callbacks/`                     | Reusable training-callback interfaces (no RL logic yet).     |
 
 ---
 
 ## Architecture
 
 ```
-                ┌────────────────────────┐
-                │   config/config.py     │  Single source of truth:
-                │  SimulatorConfig       │  paths, FPS, window size,
-                └───────────┬────────────┘  env name, render mode.
-                            │ (injected everywhere)
-        ┌───────────────────┼───────────────────────┐
-        │                   │                       │
-┌───────▼───────┐   ┌───────▼────────┐      ┌───────▼────────┐
-│  env.py       │   │ telemetry.py   │      │  recorder.py   │
-│  RaceEnv      │   │ TelemetryLogger│      │ EpisodeRecorder│
-│ (Gymnasium)   │   │  -> CSV        │      │  -> .npz       │
-└───────┬───────┘   └───────┬────────┘      └───────┬────────┘
-        │                   │                       │
-        │            ┌──────▼───────────────────────▼──────┐
-        └───────────▶│        manual_drive.py              │
-                     │  ManualDriveSession (keyboard)      │
-                     └─────────────────────────────────────┘
+                 ┌──────────────────────────────────────────┐
+                 │                config/                     │
+                 │  paths.py · simulator.py · experiment.py   │
+                 │  logging.py   (config.py = compat shim)    │
+                 └───────────────────┬────────────────────────┘
+                                     │ (configuration injected)
+        ┌───────────────────────────┼────────────────────────────┐
+        │                           │                            │
+┌───────▼────────────┐   ┌──────────▼───────────┐    ┌───────────▼─────────┐
+│ environment_factory │   │      utils/          │    │     evaluation/     │
+│   make_env(config)  │   │ logger · seed · io   │    │ metrics · summaries │
+└───────┬─────────────┘   │ paths                │    └─────────────────────┘
+        │ builds + wraps   └──────────────────────┘
+        ▼
+┌────────────────────┐     ┌───────────────────────────────────────────────┐
+│  simulator/env.py  │     │  simulator/wrappers/                            │
+│      RaceEnv       │◀────│  Observation · Reward · Action (identity today) │
+└───────┬────────────┘     └───────────────────────────────────────────────┘
+        │
+        ▼
+┌────────────────────┐   telemetry.py (CSV) · recorder.py (.npz) · replay.py
+│  manual_drive.py   │
+└────────────────────┘   training/callbacks/ — interfaces for Phase 2
 
-        ┌─────────────────────────────────────────────────┐
-        │  replay.py — reads .npz only, NO Gymnasium import │
-        │  ReplayPlayer (independent of the live simulator) │
-        └─────────────────────────────────────────────────┘
-
-        simulator/utils.py — timestamps, dirs, CSV, naming (shared)
+  simulator/utils.py → re-exports utils/ (backwards compatibility shim)
 ```
 
 **Design principles**
 
-- Configuration is **injected**, never imported ad-hoc — every component takes a
-  `SimulatorConfig`.
-- `replay.py` depends only on the recording format, so recordings can be viewed
-  on machines that cannot run the environment.
-- OOP for stateful components (`RaceEnv`, loggers), dataclasses for plain data
-  (`TelemetryRecord`, `EpisodeMetadata`, `RecordedEpisode`), small typed
-  functions everywhere.
+- **Single creation point:** environments are built only via `make_env`.
+- **Configuration is injected**, never imported ad-hoc.
+- **Low coupling:** `replay.py` and `evaluation/` depend only on data formats, not
+  on the live environment; `utils/` is dependency-light and import-cycle-free.
+- **Backwards compatibility:** `config/config.py` and `simulator/utils.py` remain
+  as thin re-export shims so Phase 1 imports keep working.
+- OOP for stateful components, dataclasses for plain data, full type hints.
 
 ---
 
@@ -78,36 +85,51 @@ helpers** live in `simulator/utils.py`.
 ```
 racemind-ai/
 │
-├── simulator/
-│   ├── __init__.py
-│   ├── env.py             # CarRacing-v3 wrapper
-│   ├── manual_drive.py    # keyboard control
-│   ├── telemetry.py       # per-frame CSV logging
-│   ├── recorder.py        # .npz episode recording
-│   ├── replay.py          # standalone replay viewer
-│   └── utils.py           # shared helpers
-│
 ├── config/
-│   ├── __init__.py
-│   └── config.py          # SimulatorConfig (no magic numbers)
+│   ├── paths.py            # PROJECT_ROOT + canonical data layout
+│   ├── simulator.py        # SimulatorConfig
+│   ├── experiment.py       # ExperimentConfig (composes SimulatorConfig)
+│   ├── logging.py          # LoggingConfig
+│   └── config.py           # backwards-compat shim
 │
-├── data/
-│   ├── telemetry/         # generated CSV files (git-ignored)
-│   └── recordings/        # generated .npz files (git-ignored)
+├── utils/
+│   ├── paths.py            # dirs, timestamps, naming
+│   ├── io.py               # CSV / JSON / atomic writes
+│   ├── logger.py           # project logging setup
+│   └── seed.py             # set_global_seed
 │
-├── notebooks/             # analysis notebooks (later)
-├── docs/                  # documentation (later)
+├── simulator/
+│   ├── env.py              # RaceEnv + build_gym_env
+│   ├── environment_factory.py
+│   ├── wrappers/           # base / observation / reward / action
+│   ├── manual_drive.py
+│   ├── telemetry.py
+│   ├── recorder.py
+│   ├── replay.py
+│   └── utils.py            # backwards-compat shim → utils/
 │
-├── requirements.txt
-├── README.md
-└── .gitignore
+├── evaluation/
+│   ├── metrics.py          # EpisodeMetrics + compute_episode_metrics
+│   └── episode_summary.py  # EpisodeSummary + summarize_recording
+│
+├── training/
+│   └── callbacks/          # base / checkpoint / logging / video
+│
+├── experiments/            # ppo/ sac/ a2c/ imitation/ (placeholders)
+│
+├── data/                   # telemetry/ recordings/ videos/ plots/
+│                           # evaluation/ models/ checkpoints/ (git-ignored)
+├── logs/                   # project.log (git-ignored)
+├── notebooks/ · docs/
+│
+├── requirements.txt · README.md · .gitignore
 ```
 
 ---
 
 ## Installation
 
-Python **3.12+** is recommended (the code also runs on 3.10+).
+Python **3.12+** is recommended.
 
 ```bash
 # 1. Create and activate a virtual environment
@@ -121,89 +143,69 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-> **Box2D note:** `CarRacing-v3` requires the Box2D backend, which is installed
-> via the `gymnasium[box2d]` and `box2d-py` requirements. On some platforms a C++
-> build toolchain (e.g. SWIG / build tools) may be needed to compile it.
-
-All commands below are run from the project root and use Python's module syntax
-(`-m`) so package imports resolve correctly.
+> Box2D ships as a pre-built wheel (`box2d==2.3.10`), so no C++ compiler is
+> required. All commands below run from the project root and use Python's `-m`
+> module syntax so package imports resolve correctly.
 
 ---
 
-## Running the Environment
+## Developer Setup & Usage
 
-Run a random-action smoke test that prints debugging information (observation
-shape, action/observation spaces, per-step and cumulative reward):
+**Run the environment** (random-action smoke test with debug logging):
 
 ```bash
 python -m simulator.env
 ```
 
-This trains nothing — it simply confirms the environment is wired correctly.
-
----
-
-## Manual Driving
-
-Drive the car yourself:
+**Drive manually** (telemetry is always logged; `--record` saves an `.npz`):
 
 ```bash
 python -m simulator.manual_drive
-```
-
-**Controls**
-
-| Key          | Action       |
-| ------------ | ------------ |
-| Arrow Up     | Accelerate   |
-| Arrow Down   | Brake        |
-| Arrow Left   | Steer left   |
-| Arrow Right  | Steer right  |
-| ESC          | Quit         |
-
-Telemetry is written automatically to `data/telemetry/` at the end of the run.
-
----
-
-## Recording Episodes
-
-Add the `--record` flag to also save a compressed `.npz` recording (frames,
-actions, rewards and metadata) to `data/recordings/`:
-
-```bash
 python -m simulator.manual_drive --record --episode 1
 ```
 
-`--episode` sets the index used to name the generated files.
+| Key | Action | | Key | Action |
+| --- | ------ | --- | --- | ------ |
+| ↑ | Accelerate | | ← / → | Steer |
+| ↓ | Brake | | ESC | Quit |
 
----
-
-## Replaying Episodes
-
-Replay a recorded episode. The replay viewer is **independent of the
-simulator** — it only reads the `.npz` file and shows each frame with an overlay
-displaying the frame number, reward and steering input:
+**Replay a recording** (independent of the simulator):
 
 ```bash
 python -m simulator.replay data/recordings/episode_001_<timestamp>.npz
 ```
 
-Press **ESC** or close the window to stop playback.
+**Create an environment in code** (always via the factory):
+
+```python
+from simulator.environment_factory import make_env
+from config.simulator import SimulatorConfig
+
+config = SimulatorConfig(render_mode="rgb_array")
+with make_env(config) as env:
+    obs, info = env.reset(seed=42)
+    obs, reward, terminated, truncated, info = env.step(env.sample_action())
+```
+
+**Logging** is configured automatically on first use and writes to both the
+console and `logs/project.log`:
+
+```
+2026-06-25 18:41:22 INFO Environment initialized: CarRacing-v3
+```
 
 ---
 
 ## Future Roadmap
 
-Phase 1 (this repository) is the foundation. Planned next phases:
-
-- **Phase 2 — Observation & reward engineering:** preprocessing wrappers
-  (frame stacking, grayscale, resizing), custom reward shaping, vectorized envs.
-- **Phase 3 — RL training:** integrate Stable-Baselines3 / PyTorch (already
-  installed) to train PPO/SAC agents; checkpointing and evaluation.
-- **Phase 4 — Analysis & visualization:** telemetry dashboards and notebooks for
-  comparing runs (using the data captured in Phase 1).
-- **Phase 5 — Autonomous racing intelligence:** self-improving agents, track
+- **Phase 2 — RL training:** PPO/SAC/A2C runners under `experiments/`, using the
+  environment factory, `ExperimentConfig`, callbacks and seeding already in place.
+- **Phase 2 — Observation/reward engineering:** promote the identity wrappers to
+  real transforms (normalization, frame stacking, resizing, reward shaping).
+- **Phase 3 — Analysis & evaluation:** expand `evaluation/` reporting and plots
+  over the telemetry and recordings captured here.
+- **Phase 4 — Autonomous racing intelligence:** self-improving agents, track
   generalization and benchmarking.
 
-> The Phase 1 simulator framework is intentionally decoupled so each later phase
-> can build on it without rewrites.
+> The Phase 1 / 1.5 framework is intentionally decoupled so each later phase can
+> build on it without rewrites.

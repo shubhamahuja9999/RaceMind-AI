@@ -1,5 +1,19 @@
-"""Configuration package for RaceMind AI."""
+"""Configuration package for RaceMind AI.
 
-from config.config import PROJECT_ROOT, SimulatorConfig, default_config
+Configuration is split into focused modules: :mod:`config.simulator`,
+:mod:`config.experiment`, :mod:`config.logging` and :mod:`config.paths`. The
+most common names are re-exported here for convenience.
+"""
 
-__all__ = ["PROJECT_ROOT", "SimulatorConfig", "default_config"]
+from config.experiment import ExperimentConfig
+from config.logging import LoggingConfig
+from config.paths import PROJECT_ROOT
+from config.simulator import SimulatorConfig, default_config
+
+__all__ = [
+    "PROJECT_ROOT",
+    "SimulatorConfig",
+    "default_config",
+    "ExperimentConfig",
+    "LoggingConfig",
+]

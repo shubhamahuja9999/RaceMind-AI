@@ -13,10 +13,25 @@ env/
 .ipynb_checkpoints/
 
 # --- Generated data (keep the folders, ignore their contents) ---
-data/recordings/*
-!data/recordings/.gitkeep
 data/telemetry/*
 !data/telemetry/.gitkeep
+data/recordings/*
+!data/recordings/.gitkeep
+data/videos/*
+!data/videos/.gitkeep
+data/plots/*
+!data/plots/.gitkeep
+data/evaluation/*
+!data/evaluation/.gitkeep
+data/models/*
+!data/models/.gitkeep
+data/checkpoints/*
+!data/checkpoints/.gitkeep
+data/experiments/
+
+# --- Logs (keep the folder, ignore the log files) ---
+logs/*
+!logs/.gitkeep
 
 # --- OS / editor noise ---
 .DS_Store
