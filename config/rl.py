@@ -8,7 +8,7 @@ YAML file.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, field, fields
 from pathlib import Path
 from typing import Any, Optional, Type, TypeVar
 
@@ -35,6 +35,7 @@ class PPOConfig:
     batch_size: int = 64
     n_epochs: int = 10
     gae_lambda: float = 0.95
+    clip_range: float = 0.2
     ent_coef: float = 0.0
     vf_coef: float = 0.5
     max_grad_norm: float = 0.5
@@ -70,6 +71,7 @@ class EvaluationConfig:
     record_video: bool = True
     success_threshold: float = 900.0
     max_steps: Optional[int] = None
+    eval_seeds: list[int] = field(default_factory=lambda: [42, 123, 999, 2024, 7])
 
     @classmethod
     def from_mapping(cls, data: dict[str, Any]) -> "EvaluationConfig":

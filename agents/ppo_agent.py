@@ -31,6 +31,7 @@ class PPOAgent(BaseAgent):
         config: Optional[PPOConfig] = None,
         seed: Optional[int] = None,
         tensorboard_log: Optional[Path] = None,
+        csv_log_dir: Optional[Path] = None,
         verbose: int = 0,
         device: str = "auto",
     ) -> None:
@@ -41,6 +42,8 @@ class PPOAgent(BaseAgent):
             config: PPO hyperparameters; defaults are used when omitted.
             seed: Optional RNG seed for the algorithm.
             tensorboard_log: Optional directory for TensorBoard logs.
+            csv_log_dir: Optional directory for a CSV training log
+                (``progress.csv``), used to plot learning curves.
             verbose: SB3 verbosity level.
             device: Torch device, e.g. ``"auto"``, ``"cpu"`` or ``"cuda"``.
         """
@@ -56,6 +59,7 @@ class PPOAgent(BaseAgent):
             batch_size=self._config.batch_size,
             n_epochs=self._config.n_epochs,
             gae_lambda=self._config.gae_lambda,
+            clip_range=self._config.clip_range,
             ent_coef=self._config.ent_coef,
             vf_coef=self._config.vf_coef,
             max_grad_norm=self._config.max_grad_norm,
@@ -64,11 +68,20 @@ class PPOAgent(BaseAgent):
             verbose=verbose,
             device=device,
         )
+        if csv_log_dir is not None:
+            self._configure_csv_logger(csv_log_dir, bool(tensorboard_log))
         _logger.info(
             "PPOAgent created (policy=%s, device=%s)",
             self._config.policy,
             self._model.device,
         )
+
+    def _configure_csv_logger(self, csv_log_dir: Path, with_tensorboard: bool) -> None:
+        """Attach an SB3 logger that also writes ``progress.csv``."""
+        from stable_baselines3.common.logger import configure
+
+        formats = ["csv", "tensorboard"] if with_tensorboard else ["csv"]
+        self._model.set_logger(configure(str(csv_log_dir), formats))
 
     @property
     def model(self) -> PPO:

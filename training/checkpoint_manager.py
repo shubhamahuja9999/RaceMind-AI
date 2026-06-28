@@ -42,6 +42,18 @@ class CheckpointManager:
         """The best monitored metric seen so far, or ``None``."""
         return self._state.get("best_metric")
 
+    @property
+    def best_path(self) -> Optional[Path]:
+        """Path to the best checkpoint, or ``None`` if none saved yet."""
+        path = self._state.get("best_path")
+        return Path(path) if path else None
+
+    @property
+    def latest_path(self) -> Optional[Path]:
+        """Path to the latest checkpoint, or ``None`` if none saved yet."""
+        path = self._state.get("latest_path")
+        return Path(path) if path else None
+
     def _load_state(self) -> dict:
         """Load the on-disk checkpoint state, or return an empty state."""
         if self._state_path.exists():

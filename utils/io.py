@@ -76,8 +76,13 @@ def safe_write_text(path: Path, text: str) -> Path:
 
 
 def write_json(path: Path, data: Mapping[str, Any]) -> Path:
-    """Serialise ``data`` to ``path`` as indented JSON (atomically)."""
-    return safe_write_text(path, json.dumps(data, indent=2, sort_keys=True))
+    """Serialise ``data`` to ``path`` as indented JSON (atomically).
+
+    Non-JSON-native values (e.g. :class:`~pathlib.Path`) are stringified via
+    ``default=str`` so config and metadata objects serialise without manual
+    conversion.
+    """
+    return safe_write_text(path, json.dumps(data, indent=2, sort_keys=True, default=str))
 
 
 def read_json(path: Path) -> dict[str, Any]:

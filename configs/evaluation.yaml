@@ -6,3 +6,6 @@ deterministic: true
 record_video: true
 success_threshold: 900.0
 # max_steps: null  # optional per-episode cap; defaults to the env's own limit
+
+# Seeds used by multi-seed evaluation (--multi-seed).
+eval_seeds: [42, 123, 999, 2024, 7]

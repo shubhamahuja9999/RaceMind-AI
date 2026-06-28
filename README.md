@@ -19,6 +19,11 @@ The repository spans **Phase 1** (the simulator framework), **Phase 1.5**
   pipeline, checkpoint management, YAML experiment configs, automatic evaluation
   videos and TensorBoard logging. PPO is the only algorithm implemented; SAC/A2C
   plug into the same interfaces later.
+- **Phase 3** — a research & benchmarking suite: multi-agent benchmarks,
+  multi-seed evaluation, a built-in grid-search sweep, learning-curve plots,
+  model cards, JSON+Markdown experiment reports, an experiment registry and
+  cross-experiment ranking. Turns "train a PPO agent" into "produce reproducible,
+  comparable experimental results".
 
 ---
 
@@ -132,12 +137,22 @@ racemind-ai/
 │   ├── metrics.py          # EpisodeMetrics + compute_episode_metrics
 │   ├── episode_summary.py  # EpisodeSummary + summarize_recording
 │   ├── benchmark.py        # BenchmarkResult + aggregate_outcomes
-│   └── evaluator.py        # Evaluator (multi-episode)
+│   ├── evaluator.py        # Evaluator (multi-episode)
+│   ├── benchmark_runner.py # BenchmarkRunner (compare multiple agents)
+│   ├── benchmark_report.py # comparison tables → Markdown + JSON
+│   ├── multi_seed.py       # multi-seed evaluation + aggregation
+│   ├── learning_curves.py  # matplotlib training/eval plots
+│   ├── model_card.py       # per-model metadata JSON
+│   └── report.py           # experiment report (Markdown + JSON)
 │
 ├── configs/                # ppo.yaml · simulator.yaml · evaluation.yaml
 │
 ├── experiments/
-│   ├── run_experiment.py   # main entry point
+│   ├── run_experiment.py   # CLI entry point (delegates to runner)
+│   ├── runner.py           # execute_experiment — orchestration hub
+│   ├── sweep.py            # built-in grid-search sweep
+│   ├── registry.py         # ExperimentRegistry (index of experiments)
+│   ├── ranking.py          # cross-experiment leaderboard → CSV
 │   └── ppo/ sac/ a2c/ imitation/   # per-algorithm output folders
 │
 ├── data/                   # telemetry/ recordings/ videos/ plots/
@@ -277,16 +292,101 @@ tensorboard --logdir runs
 
 ---
 
+## Research & Benchmarking (Phase 3)
+
+Phase 3 makes every run reproducible and comparable. The experiment runner is
+also the research entry point — a single `run` now produces a full artifact set.
+
+### Research workflow (what one experiment produces)
+
+```bash
+python -m experiments.run_experiment --experiment-name ppo_carracing --multi-seed
+```
+
+Outputs:
+
+| Artifact | Location |
+| --- | --- |
+| Checkpoints (`latest.zip`, `best.zip`) | `data/checkpoints/<name>/` |
+| Model card (`model_card.json`) | `data/checkpoints/<name>/` |
+| Learning-curve plots (`*.png`) | `data/plots/<name>/` |
+| Report (`report.md`, `report.json`) | `data/evaluation/<name>/` |
+| Multi-seed summary (`multi_seed.json`) | `data/evaluation/<name>/` |
+| Evaluation videos (`*.mp4`) | `data/videos/<name>/` |
+| Registry + leaderboard | `data/evaluation/registry.json`, `rankings.csv` |
+| TensorBoard logs | `runs/<name>/` |
+
+Learning curves cover episode reward, moving-average reward, episode length,
+evaluation reward, training FPS and loss (when available).
+
+### Multi-seed evaluation
+
+`--multi-seed` evaluates the trained agent across the seeds in
+`configs/evaluation.yaml` (`eval_seeds`) and reports mean, standard deviation,
+and best/worst runs — quantifying how reliable the result is.
+
+### Benchmark workflow (compare agents)
+
+```python
+from agents.random_agent import RandomAgent
+from agents.ppo_agent import PPOAgent
+from config.simulator import SimulatorConfig
+from simulator.environment_factory import make_eval_env
+from evaluation.benchmark_runner import BenchmarkRunner
+from evaluation.benchmark_report import save_comparison
+
+env = make_eval_env(SimulatorConfig(), record_video=False)
+agents = {"random": RandomAgent(env.action_space), "ppo": PPOAgent(env)}
+comparison = BenchmarkRunner(env, n_episodes=10).run(agents)
+save_comparison(comparison, SimulatorConfig().evaluation_dir / "benchmark")
+env.close()
+```
+
+Produces a comparison table (avg / max / min / median / std reward, average
+length, success rate, evaluation time) as Markdown + JSON.
+
+### Hyperparameter sweep guide
+
+A built-in grid search (no Optuna / Ray) over PPO hyperparameters
+(`learning_rate`, `gamma`, `batch_size`, `n_steps`, `clip_range`):
+
+```bash
+python -m experiments.sweep --sweep-name lr_gamma \
+    --param learning_rate=3e-4,1e-4 --param gamma=0.99,0.95 \
+    --total-timesteps 50000
+```
+
+Each combination runs a full experiment; results are ranked and written to
+`data/evaluation/<sweep-name>/sweep_results.json` and `sweep_ranking.csv`.
+
+### Experiment registry & ranking
+
+Every completed experiment is recorded in `data/evaluation/registry.json` and the
+leaderboard `rankings.csv` is refreshed automatically. Query the registry in
+code:
+
+```python
+from experiments.registry import ExperimentRegistry
+registry = ExperimentRegistry()
+registry.filter(algorithm="PPO", environment="CarRacing-v3")
+registry.find("ppo_carracing")
+```
+
+---
+
 ## Future Roadmap
 
 - **Phase 2 (done) — Baseline RL framework:** pluggable agents, PPO via SB3, a
   generic trainer, evaluation pipeline, checkpoints, videos and TensorBoard.
-- **Phase 3 — More algorithms:** add SAC and A2C as new `BaseAgent`
-  implementations (the trainer and evaluator need no changes).
-- **Phase 3 — Observation/reward engineering:** promote the identity wrappers to
+- **Phase 3 (done) — Experimentation & benchmark suite:** multi-agent benchmarks,
+  multi-seed evaluation, grid-search sweeps, learning curves, model cards,
+  experiment reports, registry and ranking.
+- **Phase 4 — More algorithms:** add SAC and A2C as new `BaseAgent`
+  implementations (trainer, evaluator and benchmark suite need no changes).
+- **Phase 4 — Observation/reward engineering:** promote the identity wrappers to
   real transforms (normalization, frame stacking, resizing, reward shaping).
-- **Phase 4 — Autonomous racing intelligence:** self-improving agents, track
-  generalization, hyperparameter sweeps and benchmarking.
+- **Phase 5 — Autonomous racing intelligence:** self-improving agents, track
+  generalization and large-scale benchmarking.
 
 > The framework is intentionally decoupled — algorithm code depends only on the
 > `BaseAgent` interface, so each later phase builds on it without rewrites.

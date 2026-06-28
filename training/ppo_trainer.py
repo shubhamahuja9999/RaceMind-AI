@@ -26,6 +26,7 @@ def build_ppo_trainer(
     evaluation_config: EvaluationConfig,
     checkpoint_dir: Path,
     tensorboard_log: Optional[Path] = None,
+    csv_log_dir: Optional[Path] = None,
     seed: Optional[int] = None,
     experiment_name: str = "ppo",
 ) -> Trainer:
@@ -39,6 +40,7 @@ def build_ppo_trainer(
         evaluation_config: Evaluation settings.
         checkpoint_dir: Directory for latest/best checkpoints.
         tensorboard_log: Optional TensorBoard log directory.
+        csv_log_dir: Optional directory for a CSV training log (learning curves).
         seed: Optional RNG seed.
         experiment_name: Name used in logs and the summary.
 
@@ -50,6 +52,7 @@ def build_ppo_trainer(
         config=ppo_config,
         seed=seed,
         tensorboard_log=tensorboard_log,
+        csv_log_dir=csv_log_dir,
     )
     return build_trainer(
         agent=agent,
