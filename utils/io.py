@@ -89,3 +89,23 @@ def read_json(path: Path) -> dict[str, Any]:
     if not path.exists():
         raise FileNotFoundError(f"JSON file not found: {path}")
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def read_yaml(path: Path) -> dict[str, Any]:
+    """Load and return the mapping stored in a YAML file at ``path``.
+
+    Args:
+        path: Path to the YAML file.
+
+    Returns:
+        The parsed mapping (an empty dict for an empty file).
+
+    Raises:
+        FileNotFoundError: If ``path`` does not exist.
+    """
+    # Imported locally so the rest of utils.io works without PyYAML installed.
+    import yaml
+
+    if not path.exists():
+        raise FileNotFoundError(f"YAML file not found: {path}")
+    return yaml.safe_load(path.read_text(encoding="utf-8")) or {}

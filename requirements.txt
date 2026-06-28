@@ -10,6 +10,10 @@ pandas>=2.1.0
 opencv-python>=4.9.0
 matplotlib>=3.8.0
 
-# --- Reserved for later phases (installed now, not used in Phase 1) ---
+# --- Reinforcement learning (Phase 2) ---
 stable-baselines3>=2.3.0
 torch>=2.2.0
+tensorboard>=2.16.0        # training metrics, logged under runs/
+pyyaml>=6.0                # experiment configuration in configs/*.yaml
+moviepy>=1.0.3            # encoding evaluation videos (Gymnasium RecordVideo)
+imageio-ffmpeg>=0.4.9     # bundled ffmpeg backend for moviepy

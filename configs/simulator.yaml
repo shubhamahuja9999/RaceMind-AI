@@ -1,0 +1,11 @@
+# Simulator configuration for RL training (CarRacing-v3).
+# Loaded into SimulatorConfig. render_mode is null for headless training; the
+# evaluation environment overrides it to "rgb_array" for video recording.
+
+env_name: CarRacing-v3
+continuous: true
+max_episode_steps: 1000
+render_mode: null
+fps: 50
+window_width: 1000
+window_height: 800

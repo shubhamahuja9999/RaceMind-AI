@@ -7,15 +7,18 @@
 autonomous racing agent trained with Reinforcement Learning on top of
 Gymnasium's `CarRacing-v3` environment.
 
-The repository currently spans **Phase 1** (the simulator framework) and
-**Phase 1.5** (research-platform infrastructure). No RL, neural networks or
-training code exists yet — the focus is a clean, reproducible foundation that
-makes Phase 2 (PPO training) straightforward.
+The repository spans **Phase 1** (the simulator framework), **Phase 1.5**
+(research-platform infrastructure) and **Phase 2** (the baseline RL framework).
 
 - **Phase 1** — simulator boundary, manual driving, telemetry, recording, replay.
 - **Phase 1.5** — environment factory, Gymnasium wrappers, professional logging,
   extended telemetry, evaluation metrics, experiment configuration, callback
   interfaces, a structured data layout and global seeding.
+- **Phase 2** — a pluggable RL framework: a common agent interface, a PPO agent
+  (Stable-Baselines3), an algorithm-agnostic trainer, a multi-episode evaluation
+  pipeline, checkpoint management, YAML experiment configs, automatic evaluation
+  videos and TensorBoard logging. PPO is the only algorithm implemented; SAC/A2C
+  plug into the same interfaces later.
 
 ---
 
@@ -33,8 +36,13 @@ makes Phase 2 (PPO training) straightforward.
 | Evaluation         | `evaluation/`                             | Episode metrics and serialisable summaries (dataclasses).    |
 | Logging            | `utils/logger.py`                         | Console + `logs/project.log`, configured once.               |
 | Seeding            | `utils/seed.py`                           | `set_global_seed` — Python / NumPy / PyTorch (if installed). |
-| Configuration      | `config/`                                 | Simulator, experiment, logging and path configuration.       |
-| Callbacks          | `training/callbacks/`                     | Reusable training-callback interfaces (no RL logic yet).     |
+| Configuration      | `config/`                                 | Simulator, experiment, logging, path and RL configuration.   |
+| Callbacks          | `training/callbacks/`                     | Reusable training-callback interfaces.                       |
+| Agents             | `agents/`                                 | `BaseAgent` interface, `RandomAgent`, `PPOAgent` (SB3).      |
+| Trainer            | `training/trainer.py`                     | Algorithm-agnostic train → evaluate → checkpoint loop.       |
+| Evaluation pipeline| `evaluation/evaluator.py` · `benchmark.py`| Multi-episode benchmark with structured metrics.            |
+| Checkpoints        | `training/checkpoint_manager.py`          | Latest + best checkpoint save/load.                          |
+| Experiment runner  | `experiments/run_experiment.py`           | Main entry point: config → env → agent → train → evaluate.   |
 
 ---
 
@@ -108,17 +116,33 @@ racemind-ai/
 │   ├── replay.py
 │   └── utils.py            # backwards-compat shim → utils/
 │
-├── evaluation/
-│   ├── metrics.py          # EpisodeMetrics + compute_episode_metrics
-│   └── episode_summary.py  # EpisodeSummary + summarize_recording
+├── agents/
+│   ├── base_agent.py       # BaseAgent interface (act/predict/learn/save/load)
+│   ├── random_agent.py     # RandomAgent baseline
+│   └── ppo_agent.py        # PPOAgent (wraps Stable-Baselines3 PPO)
 │
 ├── training/
+│   ├── trainer.py          # generic Trainer + build_trainer + TrainingSummary
+│   ├── ppo_trainer.py      # build_ppo_trainer (PPO agent + Trainer assembly)
+│   ├── training_loop.py    # run_episode rollout (agent-agnostic)
+│   ├── checkpoint_manager.py  # latest + best checkpoints
 │   └── callbacks/          # base / checkpoint / logging / video
 │
-├── experiments/            # ppo/ sac/ a2c/ imitation/ (placeholders)
+├── evaluation/
+│   ├── metrics.py          # EpisodeMetrics + compute_episode_metrics
+│   ├── episode_summary.py  # EpisodeSummary + summarize_recording
+│   ├── benchmark.py        # BenchmarkResult + aggregate_outcomes
+│   └── evaluator.py        # Evaluator (multi-episode)
+│
+├── configs/                # ppo.yaml · simulator.yaml · evaluation.yaml
+│
+├── experiments/
+│   ├── run_experiment.py   # main entry point
+│   └── ppo/ sac/ a2c/ imitation/   # per-algorithm output folders
 │
 ├── data/                   # telemetry/ recordings/ videos/ plots/
 │                           # evaluation/ models/ checkpoints/ (git-ignored)
+├── runs/                   # TensorBoard logs (git-ignored)
 ├── logs/                   # project.log (git-ignored)
 ├── notebooks/ · docs/
 │
@@ -196,16 +220,73 @@ console and `logs/project.log`:
 
 ---
 
+## Reinforcement Learning (Phase 2)
+
+All experiment parameters live in `configs/*.yaml` (`ppo.yaml`, `simulator.yaml`,
+`evaluation.yaml`) — edit those rather than hardcoding values. The experiment
+runner is the single entry point.
+
+**Train PPO:**
+
+```bash
+python -m experiments.run_experiment --experiment-name ppo_carracing
+```
+
+This loads the configs, seeds everything, creates the training and evaluation
+environments, builds the PPO agent and trainer, then trains while periodically
+evaluating and checkpointing. CLI overrides are available, e.g.:
+
+```bash
+python -m experiments.run_experiment --total-timesteps 200000 --seed 123
+```
+
+**Sanity-check with the random baseline** (same framework, no learning):
+
+```bash
+python -m experiments.run_experiment --experiment-name rnd --algorithm random --total-timesteps 2000
+```
+
+**Evaluate** — a multi-episode benchmark runs automatically at the end of
+training and writes `data/evaluation/<experiment-name>.json` (average / max / min
+reward, reward variance, episode length, success rate). To evaluate a saved
+agent without training:
+
+```bash
+python -m experiments.run_experiment --experiment-name ppo_carracing --eval-only --resume
+```
+
+**Resume training** from the latest checkpoint:
+
+```bash
+python -m experiments.run_experiment --experiment-name ppo_carracing --resume
+```
+
+Checkpoints are written to `data/checkpoints/<experiment-name>/` as `latest.zip`
+and `best.zip` (best by mean evaluation reward).
+
+**Evaluation videos** are recorded automatically (Gymnasium's `RecordVideo`) to
+`data/videos/<experiment-name>/` — disable with `--no-video`. They are standard
+`.mp4` files; open them in any player. (The Phase 1 `.npz` replay viewer is
+separate and used for manually recorded episodes.)
+
+**TensorBoard** logs are written to `runs/<experiment-name>/`:
+
+```bash
+tensorboard --logdir runs
+```
+
+---
+
 ## Future Roadmap
 
-- **Phase 2 — RL training:** PPO/SAC/A2C runners under `experiments/`, using the
-  environment factory, `ExperimentConfig`, callbacks and seeding already in place.
-- **Phase 2 — Observation/reward engineering:** promote the identity wrappers to
+- **Phase 2 (done) — Baseline RL framework:** pluggable agents, PPO via SB3, a
+  generic trainer, evaluation pipeline, checkpoints, videos and TensorBoard.
+- **Phase 3 — More algorithms:** add SAC and A2C as new `BaseAgent`
+  implementations (the trainer and evaluator need no changes).
+- **Phase 3 — Observation/reward engineering:** promote the identity wrappers to
   real transforms (normalization, frame stacking, resizing, reward shaping).
-- **Phase 3 — Analysis & evaluation:** expand `evaluation/` reporting and plots
-  over the telemetry and recordings captured here.
 - **Phase 4 — Autonomous racing intelligence:** self-improving agents, track
-  generalization and benchmarking.
+  generalization, hyperparameter sweeps and benchmarking.
 
-> The Phase 1 / 1.5 framework is intentionally decoupled so each later phase can
-> build on it without rewrites.
+> The framework is intentionally decoupled — algorithm code depends only on the
+> `BaseAgent` interface, so each later phase builds on it without rewrites.

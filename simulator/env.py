@@ -21,7 +21,14 @@ from utils.logger import get_logger
 _logger = get_logger(__name__)
 
 
-def build_gym_env(config: SimulatorConfig) -> gym.Env:
+# Sentinel distinguishing "use the configured render mode" from an explicit None.
+_USE_CONFIG_RENDER_MODE = object()
+
+
+def build_gym_env(
+    config: SimulatorConfig,
+    render_mode: Any = _USE_CONFIG_RENDER_MODE,
+) -> gym.Env:
     """Construct the raw Gymnasium environment described by ``config``.
 
     This is the single place ``gym.make`` is called, so both :class:`RaceEnv`
@@ -29,13 +36,21 @@ def build_gym_env(config: SimulatorConfig) -> gym.Env:
 
     Args:
         config: Simulator configuration.
+        render_mode: Optional render-mode override. When left at its sentinel
+            default, ``config.render_mode`` is used; pass an explicit value
+            (including ``None``) to override it.
 
     Returns:
         A freshly created (unwrapped) Gymnasium environment.
     """
+    effective_render_mode = (
+        config.render_mode
+        if render_mode is _USE_CONFIG_RENDER_MODE
+        else render_mode
+    )
     return gym.make(
         config.env_name,
-        render_mode=config.render_mode,
+        render_mode=effective_render_mode,
         continuous=config.continuous,
         max_episode_steps=config.max_episode_steps,
     )

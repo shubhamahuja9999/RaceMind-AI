@@ -1,0 +1,21 @@
+# PPO experiment configuration for RaceMind AI (CarRacing-v3).
+# Loaded into TrainingConfig (schedule) and PPOConfig (hyperparameters).
+
+# --- Training schedule (algorithm-agnostic) ---
+seed: 42
+algorithm: PPO
+total_timesteps: 100000
+evaluation_frequency: 20000
+checkpoint_frequency: 20000
+
+# --- PPO hyperparameters ---
+policy: CnnPolicy
+learning_rate: 0.0003
+gamma: 0.99
+n_steps: 1024
+batch_size: 64
+n_epochs: 10
+gae_lambda: 0.95
+ent_coef: 0.0
+vf_coef: 0.5
+max_grad_norm: 0.5

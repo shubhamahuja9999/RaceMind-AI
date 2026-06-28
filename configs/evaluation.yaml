@@ -1,0 +1,8 @@
+# Evaluation configuration for RaceMind AI.
+# Loaded into EvaluationConfig and used by the Evaluator / benchmark pipeline.
+
+n_eval_episodes: 5
+deterministic: true
+record_video: true
+success_threshold: 900.0
+# max_steps: null  # optional per-episode cap; defaults to the env's own limit

@@ -9,12 +9,17 @@ in exactly one place — which is what Phase 2 (PPO training) will depend on.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Optional
+
+import gymnasium as gym
+from gymnasium.wrappers import RecordVideo
 
 from config.simulator import SimulatorConfig, default_config
 from simulator.env import RaceEnv, build_gym_env
 from simulator.wrappers import wrap_environment
 from utils.logger import get_logger
+from utils.paths import ensure_directory
 
 _logger = get_logger(__name__)
 
@@ -40,3 +45,60 @@ def make_env(
         env = wrap_environment(env)
         _logger.debug("Applied standard wrapper stack.")
     return RaceEnv(config, env=env)
+
+
+def make_training_env(config: Optional[SimulatorConfig] = None) -> gym.Env:
+    """Create a raw (gym.Env) environment for RL training.
+
+    Returns a wrapped Gymnasium environment — not a :class:`RaceEnv` — because
+    Stable-Baselines3 operates on ``gym.Env``. Rendering is disabled for speed.
+
+    Args:
+        config: Simulator configuration; the default is used when omitted.
+
+    Returns:
+        The wrapped training environment.
+    """
+    config = config or default_config()
+    env = build_gym_env(config, render_mode=None)
+    return wrap_environment(env)
+
+
+def make_eval_env(
+    config: Optional[SimulatorConfig] = None,
+    record_video: bool = False,
+    video_dir: Optional[Path] = None,
+    name_prefix: str = "eval",
+) -> gym.Env:
+    """Create a raw (gym.Env) environment for evaluation, optionally recording.
+
+    Uses ``render_mode="rgb_array"`` so frames are available to Gymnasium's
+    :class:`~gymnasium.wrappers.RecordVideo` wrapper. Video frames are captured
+    by the wrapper — never recorded manually.
+
+    Args:
+        config: Simulator configuration; the default is used when omitted.
+        record_video: When ``True``, wrap the env in ``RecordVideo``.
+        video_dir: Directory for saved videos (required if ``record_video``).
+        name_prefix: Filename prefix for recorded videos.
+
+    Returns:
+        The wrapped (and optionally recording) evaluation environment.
+    """
+    config = config or default_config()
+    env = build_gym_env(config, render_mode="rgb_array")
+    env = wrap_environment(env)
+
+    if record_video:
+        if video_dir is None:
+            raise ValueError("video_dir is required when record_video is True.")
+        ensure_directory(video_dir)
+        env = RecordVideo(
+            env,
+            video_folder=str(video_dir),
+            episode_trigger=lambda episode_id: True,
+            name_prefix=name_prefix,
+        )
+        _logger.info("Evaluation video recording enabled: %s", video_dir)
+
+    return env
