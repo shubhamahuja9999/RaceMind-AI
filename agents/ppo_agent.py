@@ -32,7 +32,7 @@ class PPOAgent(BaseAgent):
         seed: Optional[int] = None,
         tensorboard_log: Optional[Path] = None,
         csv_log_dir: Optional[Path] = None,
-        verbose: int = 0,
+        verbose: int = 1,
         device: str = "auto",
     ) -> None:
         """Construct the underlying PPO model.

@@ -31,7 +31,7 @@ class PPOConfig:
     policy: str = "CnnPolicy"
     learning_rate: float = 3e-4
     gamma: float = 0.99
-    n_steps: int = 1024
+    n_steps: int = 2048
     batch_size: int = 64
     n_epochs: int = 10
     gae_lambda: float = 0.95
