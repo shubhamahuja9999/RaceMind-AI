@@ -63,17 +63,31 @@ class CheckpointManager:
     def save(self, agent: BaseAgent, metric: float, step: int) -> None:
         """Save the latest checkpoint and update the best one if improved.
 
+        In addition to ``latest.zip`` and ``best.zip``, a numbered checkpoint
+        (e.g. ``checkpoint_50000.zip``) is written so that individual snapshots
+        are available for comparison or training resumption.
+
         Args:
             agent: The agent to checkpoint.
             metric: The monitored metric for this checkpoint (higher is better).
             step: The training timestep this checkpoint corresponds to.
         """
+        # --- Numbered checkpoint (always saved) ---
+        numbered_stem = f"checkpoint_{step}"
+        numbered_path = agent.save(self._dir / numbered_stem)
+        _logger.info(
+            "Checkpoint saved (%s) at step %d: metric=%.2f",
+            numbered_path.name, step, metric,
+        )
+
+        # --- Latest (overwritten each time) ---
         latest_path = agent.save(self._dir / LATEST_STEM)
         self._state.update(
             {"latest_path": str(latest_path), "latest_step": step, "latest_metric": metric}
         )
         _logger.info("Checkpoint saved (latest) at step %d: metric=%.2f", step, metric)
 
+        # --- Best (only when metric improves) ---
         if self.best_metric is None or metric > self.best_metric:
             best_path = agent.save(self._dir / BEST_STEM)
             self._state.update(
