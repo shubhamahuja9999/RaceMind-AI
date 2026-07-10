@@ -36,7 +36,7 @@ class PPOConfig:
     n_epochs: int = 10
     gae_lambda: float = 0.95
     clip_range: float = 0.2
-    ent_coef: float = 0.0
+    ent_coef: float = 0.005
     vf_coef: float = 0.5
     max_grad_norm: float = 0.5
 

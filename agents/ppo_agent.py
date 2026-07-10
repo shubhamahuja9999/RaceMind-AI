@@ -69,19 +69,38 @@ class PPOAgent(BaseAgent):
             device=device,
         )
         if csv_log_dir is not None:
-            self._configure_csv_logger(csv_log_dir, bool(tensorboard_log))
+            self.configure_logger(csv_log_dir, tensorboard=bool(tensorboard_log))
         _logger.info(
             "PPOAgent created (policy=%s, device=%s)",
             self._config.policy,
             self._model.device,
         )
 
-    def _configure_csv_logger(self, csv_log_dir: Path, with_tensorboard: bool) -> None:
-        """Attach an SB3 logger that also writes ``progress.csv``."""
+    def configure_logger(
+        self,
+        log_dir: Path,
+        tensorboard: bool = True,
+        stdout: bool = False,
+    ) -> None:
+        """Attach an SB3 logger writing ``progress.csv`` (and optionally TB/stdout).
+
+        Call this after :meth:`load` when continuing a run, because loading a
+        checkpoint replaces the model and discards any previously attached
+        logger.
+
+        Args:
+            log_dir: Directory for the log outputs.
+            tensorboard: Also write TensorBoard event files into ``log_dir``.
+            stdout: Also echo metrics to stdout.
+        """
         from stable_baselines3.common.logger import configure
 
-        formats = ["csv", "tensorboard"] if with_tensorboard else ["csv"]
-        self._model.set_logger(configure(str(csv_log_dir), formats))
+        formats = ["csv"]
+        if tensorboard:
+            formats.append("tensorboard")
+        if stdout:
+            formats.append("stdout")
+        self._model.set_logger(configure(str(log_dir), formats))
 
     @property
     def model(self) -> PPO:
@@ -96,6 +115,22 @@ class PPOAgent(BaseAgent):
         """Delegate action selection to the PPO policy."""
         action, state = self._model.predict(observation, deterministic=deterministic)
         return np.asarray(action), state
+
+    def set_learning_rate(self, lr: float) -> None:
+        """Set the optimizer learning rate to a constant value.
+
+        Uses SB3's ``constant_fn`` so the resulting ``lr_schedule`` remains
+        checkpoint-serialisable (a schedule closing over the model is not). Call
+        this before each training chunk to realise a stepped schedule (e.g. a
+        linear decay applied per 50k-step chunk).
+
+        Args:
+            lr: The learning rate to apply from now on.
+        """
+        from stable_baselines3.common.utils import constant_fn
+
+        self._model.learning_rate = lr
+        self._model.lr_schedule = constant_fn(lr)
 
     def learn(
         self,
@@ -117,9 +152,24 @@ class PPOAgent(BaseAgent):
         self._model.save(str(stem))
         return stem.with_suffix(".zip")
 
-    def load(self, path: Path) -> "PPOAgent":
-        """Load PPO weights from ``path`` into this agent's model."""
+    def load(self, path: Path, tensorboard_log: Optional[Path] = None) -> "PPOAgent":
+        """Load PPO weights from ``path`` into this agent's model.
+
+        Args:
+            path: Checkpoint path (``.zip`` extension optional).
+            tensorboard_log: Optional TensorBoard directory to re-attach. SB3
+                does not restore ``tensorboard_log`` on load, so pass it here to
+                keep logging when continuing a run.
+
+        Returns:
+            ``self``, with restored state.
+        """
         candidate = path if path.suffix == ".zip" else path.with_suffix(".zip")
-        self._model = PPO.load(str(candidate), env=self._env, device=self._model.device)
+        self._model = PPO.load(
+            str(candidate),
+            env=self._env,
+            device=self._model.device,
+            tensorboard_log=str(tensorboard_log) if tensorboard_log else None,
+        )
         _logger.info("PPO model loaded from %s", candidate)
         return self

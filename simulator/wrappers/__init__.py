@@ -25,11 +25,12 @@ from pathlib import Path
 from typing import Optional
 
 import gymnasium as gym
-from gymnasium.wrappers import FrameStackObservation, GrayscaleObservation
+from gymnasium.wrappers import GrayscaleObservation
 from stable_baselines3.common.monitor import Monitor
 
 from simulator.wrappers.action_wrapper import ActionWrapper
 from simulator.wrappers.base_wrapper import BaseWrapper
+from simulator.wrappers.frame_stack import TemporalFrameStack
 from simulator.wrappers.observation_wrapper import ObservationWrapper
 from simulator.wrappers.reward_wrapper import RewardWrapper
 
@@ -38,6 +39,7 @@ __all__ = [
     "ObservationWrapper",
     "RewardWrapper",
     "ActionWrapper",
+    "TemporalFrameStack",
     "wrap_environment",
 ]
 
@@ -58,7 +60,7 @@ def wrap_environment(
         → ActionWrapper       (custom action transforms)
         → Monitor             (SB3 episode logging + statistics)
         → GrayscaleObservation (optional, reduces channels 3→1)
-        → FrameStackObservation (optional, stacks N consecutive frames)
+        → TemporalFrameStack   (optional, stacks N frames on the channel axis)
 
     Args:
         env: The raw Gymnasium environment to wrap.
@@ -82,6 +84,8 @@ def wrap_environment(
         env = GrayscaleObservation(env, keep_dim=True)
 
     if frame_stack > 0:
-        env = FrameStackObservation(env, stack_size=frame_stack)
+        # Channel-wise stacking (H, W, C*N) keeps the observation a valid image
+        # for SB3's CnnPolicy and preserves the single-env Gymnasium API.
+        env = TemporalFrameStack(env, num_stack=frame_stack)
 
     return env

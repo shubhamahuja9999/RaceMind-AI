@@ -1,0 +1,24 @@
+{
+  "baseline_name": "baseline_ppo_1m",
+  "controlled_variables": {
+    "additional_timesteps": 500000,
+    "batch_size": 64,
+    "clip_range": 0.2,
+    "ent_coef": 0.005,
+    "environment": "CarRacing-v3",
+    "evaluation": "30 deterministic episodes, seeds 1000-1029",
+    "gae_lambda": 0.95,
+    "gamma": 0.99,
+    "max_grad_norm": 0.5,
+    "n_epochs": 10,
+    "n_steps": 2048,
+    "policy": "CnnPolicy",
+    "resume_checkpoint": "ppo_1m/best.zip",
+    "vf_coef": 0.5
+  },
+  "expected_outcome": "Improved or No significant change (more stable); not Regressed.",
+  "experiment_id": "001",
+  "hypothesis": "Linearly decaying the learning rate from 3e-4 to 0 over the additional 500k steps will stabilise late-stage PPO updates and yield equal-or-higher mean reward than the constant-LR baseline, avoiding the late-training regression seen with a constant rate.",
+  "independent_variable": "learning_rate schedule: constant 3e-4 -> linear decay 3e-4 to 0 (applied as a stepped schedule, updated each 50k-step evaluation chunk)",
+  "name": "lr_schedule_linear_decay"
+}

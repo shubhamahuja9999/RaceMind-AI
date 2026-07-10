@@ -13,10 +13,10 @@ from dataclasses import asdict, dataclass
 from typing import Any, Mapping
 
 import gymnasium as gym
-import numpy as np
 
 from agents.base_agent import BaseAgent
 from evaluation.evaluator import Evaluator
+from evaluation.statistics import compute_reward_statistics
 from utils.logger import get_logger
 
 _logger = get_logger(__name__)
@@ -33,6 +33,8 @@ class AgentBenchmark:
     min_reward: float
     median_reward: float
     std_reward: float
+    ci95_low: float
+    ci95_high: float
     average_length: float
     success_rate: float
     evaluation_seconds: float
@@ -137,15 +139,17 @@ class BenchmarkRunner:
     @staticmethod
     def _to_benchmark(name: str, result: Any, elapsed: float) -> AgentBenchmark:
         """Build an :class:`AgentBenchmark` from a benchmark result and timing."""
-        rewards = np.asarray(result.episode_rewards, dtype=np.float64)
+        stats = compute_reward_statistics(result.episode_rewards)
         return AgentBenchmark(
             name=name,
             n_episodes=result.n_episodes,
             average_reward=result.average_reward,
             max_reward=result.max_reward,
             min_reward=result.min_reward,
-            median_reward=float(np.median(rewards)),
-            std_reward=float(rewards.std()),
+            median_reward=stats.median,
+            std_reward=stats.std,
+            ci95_low=stats.ci95_low,
+            ci95_high=stats.ci95_high,
             average_length=result.average_length,
             success_rate=result.success_rate,
             evaluation_seconds=elapsed,

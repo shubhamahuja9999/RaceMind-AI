@@ -135,7 +135,11 @@ def _episode_plots(
 
 
 def _progress_plots(output_dir: Path, progress: Optional[pd.DataFrame]) -> list[Path]:
-    """Training FPS and loss plots from the SB3 progress log."""
+    """Per-update training plots from the SB3 progress log.
+
+    Plots training reward, learning rate, entropy, FPS and loss when their
+    columns are present (each is optional and skipped otherwise).
+    """
     if progress is None:
         return []
 
@@ -144,6 +148,9 @@ def _progress_plots(output_dir: Path, progress: Optional[pd.DataFrame]) -> list[
     saved: list[Path] = []
 
     for column, filename, title, ylabel in (
+        ("rollout/ep_rew_mean", "training_reward.png", "Training Reward (rollout mean)", "Reward"),
+        ("train/learning_rate", "learning_rate.png", "Learning Rate", "LR"),
+        ("train/entropy_loss", "entropy.png", "Entropy Loss", "Entropy loss"),
         ("time/fps", "training_fps.png", "Training FPS", "FPS"),
         ("train/loss", "loss.png", "Training Loss", "Loss"),
     ):

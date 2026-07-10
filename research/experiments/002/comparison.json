@@ -1,0 +1,27 @@
+{
+  "absolute_improvement": -187.34950839762365,
+  "baseline_ci": [
+    544.7794510549523,
+    652.0542806276948
+  ],
+  "baseline_mean": 598.4168658413236,
+  "baseline_name": "baseline_ppo_1m",
+  "ci_overlap": false,
+  "degrees_of_freedom": 29,
+  "effect_size": -1.1614905064655525,
+  "effect_size_label": "large",
+  "experiment_ci": [
+    344.90930840432486,
+    477.22540648307495
+  ],
+  "experiment_mean": 411.0673574436999,
+  "experiment_name": "experiment_002_framestack_4",
+  "mean_difference": -187.3495083976237,
+  "n": 30,
+  "paired": true,
+  "percent_improvement": -31.307524752703298,
+  "significant": true,
+  "t_critical_95": 2.045,
+  "t_statistic": -5.753172328422726,
+  "verdict": "Regressed"
+}

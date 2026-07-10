@@ -1,0 +1,25 @@
+{
+  "absolute_improvement": -164.3154773435582,
+  "baseline_ci": [
+    544.7794510549523,
+    652.0542806276948
+  ],
+  "baseline_mean": 598.4168658413236,
+  "baseline_name": "baseline_ppo_1m",
+  "ci_overlap": false,
+  "degrees_of_freedom": 29,
+  "experiment_ci": [
+    374.1201378555992,
+    494.08263913993153
+  ],
+  "experiment_mean": 434.10138849776536,
+  "experiment_name": "experiment_001_lr_schedule_linear_decay",
+  "mean_difference": -164.31547734355823,
+  "n": 30,
+  "paired": true,
+  "percent_improvement": -27.458363345515757,
+  "significant": true,
+  "t_critical_95": 2.045,
+  "t_statistic": -5.499413738806836,
+  "verdict": "Regressed"
+}

@@ -1,0 +1,25 @@
+{
+  "baseline_name": "baseline_ppo_1m",
+  "controlled_variables": {
+    "algorithm": "PPO (CnnPolicy)",
+    "batch_size": 64,
+    "clip_range": 0.2,
+    "ent_coef": 0.005,
+    "environment": "CarRacing-v3",
+    "evaluation": "30 deterministic episodes, seeds 1000-1029",
+    "gae_lambda": 0.95,
+    "gamma": 0.99,
+    "initialisation": "from scratch (no checkpoint loaded)",
+    "learning_rate": "0.0003 (constant)",
+    "max_grad_norm": 0.5,
+    "n_epochs": 10,
+    "n_steps": 2048,
+    "training_timesteps": 1000000,
+    "vf_coef": 0.5
+  },
+  "expected_outcome": "Improved (reject the null hypothesis) if partial observability matters.",
+  "experiment_id": "002",
+  "hypothesis": "Providing the policy with four consecutive frames will improve driving performance because CarRacing is partially observable from a single frame.",
+  "independent_variable": "observation: single frame -> FrameStack(4) (temporal, channel-stacked)",
+  "name": "framestack_4"
+}
