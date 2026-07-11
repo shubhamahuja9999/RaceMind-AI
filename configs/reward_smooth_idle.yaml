@@ -1,0 +1,32 @@
+# Experiment 004: baseline (progress) + SmoothSteeringReward + IdlePenalty.
+# The ONLY change from Experiment 003 is that idle is additionally enabled.
+# Weights are fixed, un-tuned design choices (see reward_smooth_steering.yaml
+# for the smooth_steering rationale; idle uses the framework's example weight).
+
+progress:
+  enabled: true
+  weight: 1.0
+
+speed:
+  enabled: false
+  weight: 0.0
+
+centerline:
+  enabled: false
+  weight: 0.0
+
+smooth_steering:
+  enabled: true
+  weight: 0.1
+
+offtrack:
+  enabled: false
+  weight: 0.0
+
+collision:
+  enabled: false
+  weight: 0.0
+
+idle:
+  enabled: true
+  weight: 0.2

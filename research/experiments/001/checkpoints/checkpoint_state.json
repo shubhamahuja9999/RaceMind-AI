@@ -1,8 +1,0 @@
-{
-  "best_metric": 434.10138849776536,
-  "best_path": "C:\\Users\\Shubham Ahuja\\OneDrive\\Desktop\\RaceMind AI\\research\\experiments\\001\\checkpoints\\best.zip",
-  "best_step": 50000,
-  "latest_metric": 328.2559433916046,
-  "latest_path": "C:\\Users\\Shubham Ahuja\\OneDrive\\Desktop\\RaceMind AI\\research\\experiments\\001\\checkpoints\\latest.zip",
-  "latest_step": 500000
-}

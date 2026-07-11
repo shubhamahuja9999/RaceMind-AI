@@ -1,0 +1,34 @@
+# Example reward configuration for RaceMind AI reward experiments.
+# Each component is independently enabled and weighted. Changing the reward
+# function never requires editing Python code.
+#
+# NOTE: this is an EXAMPLE composition, not the baseline. To reproduce the
+# frozen baseline exactly, use configs/reward_baseline.yaml (progress only).
+
+progress:
+  enabled: true
+  weight: 1.0
+
+speed:
+  enabled: true
+  weight: 0.3
+
+centerline:
+  enabled: false
+  weight: 0.0
+
+smooth_steering:
+  enabled: false
+  weight: 0.0
+
+offtrack:
+  enabled: true
+  weight: 1.0
+
+collision:
+  enabled: false
+  weight: 0.0
+
+idle:
+  enabled: true
+  weight: 0.2

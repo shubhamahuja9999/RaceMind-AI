@@ -1,0 +1,34 @@
+# Experiment 003: baseline (progress) + SmoothSteeringReward.
+# The ONLY change from configs/reward_baseline.yaml is that smooth_steering is
+# enabled. No weights are tuned: the weight below is a single fixed, modest
+# shaping value (chosen once, not optimised) so the penalty nudges toward smooth
+# control without swamping the primary progress reward. Its sensitivity is noted
+# as a limitation in the final report.
+
+progress:
+  enabled: true
+  weight: 1.0
+
+speed:
+  enabled: false
+  weight: 0.0
+
+centerline:
+  enabled: false
+  weight: 0.0
+
+smooth_steering:
+  enabled: true
+  weight: 0.1
+
+offtrack:
+  enabled: false
+  weight: 0.0
+
+collision:
+  enabled: false
+  weight: 0.0
+
+idle:
+  enabled: false
+  weight: 0.0

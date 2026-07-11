@@ -1,0 +1,32 @@
+# Ablation: baseline (progress) + centerline.
+# The ONLY difference from configs/reward_baseline.yaml is that the centerline
+# component is enabled. Everything else (training, observation, PPO
+# hyperparameters, evaluation protocol) is held identical.
+
+progress:
+  enabled: true
+  weight: 1.0
+
+speed:
+  enabled: false
+  weight: 0.0
+
+centerline:
+  enabled: true
+  weight: 0.5
+
+smooth_steering:
+  enabled: false
+  weight: 0.0
+
+offtrack:
+  enabled: false
+  weight: 0.0
+
+collision:
+  enabled: false
+  weight: 0.0
+
+idle:
+  enabled: false
+  weight: 0.0

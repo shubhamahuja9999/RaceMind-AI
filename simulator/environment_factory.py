@@ -50,6 +50,7 @@ def make_env(
 def make_training_env(
     config: Optional[SimulatorConfig] = None,
     frame_stack: int = 0,
+    reward_manager: Optional[object] = None,
 ) -> gym.Env:
     """Create a raw (gym.Env) environment for RL training.
 
@@ -60,13 +61,18 @@ def make_training_env(
         config: Simulator configuration; the default is used when omitted.
         frame_stack: When > 0, stack this many consecutive frames (temporal
             observation). ``0`` (default) matches the baseline single-frame env.
+        reward_manager: Optional reward manager for reward experiments; when
+            given, the training reward is the composed reward. ``None`` (default)
+            keeps the native reward (baseline behaviour). Evaluation always uses
+            the native reward, so ``make_eval_env`` intentionally has no such
+            parameter.
 
     Returns:
         The wrapped training environment.
     """
     config = config or default_config()
     env = build_gym_env(config, render_mode=None)
-    return wrap_environment(env, frame_stack=frame_stack)
+    return wrap_environment(env, frame_stack=frame_stack, reward_manager=reward_manager)
 
 
 def make_eval_env(

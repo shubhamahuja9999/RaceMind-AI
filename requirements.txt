@@ -1,5 +1,5 @@
-# RaceMind AI — Phase 1 dependencies
-# Python 3.12+ recommended (works on 3.10+).
+# RaceMind AI — dependencies (v1.0)
+# Python 3.12+ recommended. Install with: pip install -r requirements.txt
 
 # --- Core simulator ---
 gymnasium[box2d]>=1.0.0     # CarRacing-v3 environment

@@ -49,6 +49,7 @@ def wrap_environment(
     monitor_dir: Optional[Path] = None,
     grayscale: bool = False,
     frame_stack: int = 0,
+    reward_manager: Optional["RewardManager"] = None,
 ) -> gym.Env:
     """Apply the standard RaceMind wrapper stack to ``env``.
 
@@ -58,6 +59,7 @@ def wrap_environment(
         → ObservationWrapper (custom observation transforms)
         → RewardWrapper      (custom reward shaping)
         → ActionWrapper       (custom action transforms)
+        → RewardShapingWrapper (optional, composed reward from a RewardManager)
         → Monitor             (SB3 episode logging + statistics)
         → GrayscaleObservation (optional, reduces channels 3→1)
         → TemporalFrameStack   (optional, stacks N frames on the channel axis)
@@ -68,6 +70,10 @@ def wrap_environment(
             Monitor still wraps the env but does not write files.
         grayscale: When ``True``, convert RGB observations to grayscale.
         frame_stack: When > 0, stack this many consecutive frames.
+        reward_manager: Optional reward manager; when provided, the environment
+            reward is replaced by the composed reward (before Monitor, so logged
+            returns reflect the shaped reward). ``None`` keeps the native reward,
+            i.e. baseline behaviour.
 
     Returns:
         The fully wrapped environment, ready for PPO training.
@@ -76,6 +82,12 @@ def wrap_environment(
     env = ObservationWrapper(env)
     env = RewardWrapper(env)
     env = ActionWrapper(env)
+
+    # --- Optional composed reward (before Monitor so returns reflect it) ---
+    if reward_manager is not None:
+        from reward.reward_shaping import RewardShapingWrapper
+
+        env = RewardShapingWrapper(env, reward_manager)
 
     # --- SB3-standard wrappers (Phase 3) ---
     env = Monitor(env, filename=str(monitor_dir) if monitor_dir else None)

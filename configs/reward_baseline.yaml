@@ -1,0 +1,32 @@
+# Baseline reward: progress only, weight 1.0.
+# With this configuration the composed reward equals the environment's native
+# reward exactly, reproducing the frozen baseline. This is the control for every
+# reward ablation.
+
+progress:
+  enabled: true
+  weight: 1.0
+
+speed:
+  enabled: false
+  weight: 0.0
+
+centerline:
+  enabled: false
+  weight: 0.0
+
+smooth_steering:
+  enabled: false
+  weight: 0.0
+
+offtrack:
+  enabled: false
+  weight: 0.0
+
+collision:
+  enabled: false
+  weight: 0.0
+
+idle:
+  enabled: false
+  weight: 0.0

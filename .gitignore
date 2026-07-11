@@ -36,6 +36,21 @@ logs/*
 # --- TensorBoard runs ---
 runs/
 
+# --- Research experiment artifacts ---
+# Keep the small, human-readable reports (spec.*, comparison.*, evaluation.json,
+# experiment_*.md) and the plot PNGs; ignore the heavy binaries so the repo stays
+# lightweight and clonable.
+research/experiments/*/checkpoints/
+research/experiments/*/videos/
+research/experiments/*/logs/
+research/experiments/*/logs_resume/
+research/reward_analysis/*/reward_log.csv
+
+# --- Large binaries (models, videos) never belong in git ---
+*.zip
+*.mp4
+*.tfevents.*
+
 # --- OS / editor noise ---
 .DS_Store
 Thumbs.db

@@ -1,392 +1,209 @@
-# RaceMind AI
+<div align="center">
 
-> An autonomous racing intelligence platform — built incrementally toward
-> Reinforcement Learning.
+# 🏎️ RaceMind AI
 
-**RaceMind AI** is a long-term machine learning project. Its end goal is an
-autonomous racing agent trained with Reinforcement Learning on top of
-Gymnasium's `CarRacing-v3` environment.
+**A reproducible reinforcement-learning research platform for autonomous racing.**
 
-The repository spans **Phase 1** (the simulator framework), **Phase 1.5**
-(research-platform infrastructure) and **Phase 2** (the baseline RL framework).
+Train, evaluate, and *scientifically* compare PPO agents on Gymnasium's `CarRacing-v3` — with a frozen baseline, controlled experiments, and honest statistics.
 
-- **Phase 1** — simulator boundary, manual driving, telemetry, recording, replay.
-- **Phase 1.5** — environment factory, Gymnasium wrappers, professional logging,
-  extended telemetry, evaluation metrics, experiment configuration, callback
-  interfaces, a structured data layout and global seeding.
-- **Phase 2** — a pluggable RL framework: a common agent interface, a PPO agent
-  (Stable-Baselines3), an algorithm-agnostic trainer, a multi-episode evaluation
-  pipeline, checkpoint management, YAML experiment configs, automatic evaluation
-  videos and TensorBoard logging. PPO is the only algorithm implemented; SAC/A2C
-  plug into the same interfaces later.
-- **Phase 3** — a research & benchmarking suite: multi-agent benchmarks,
-  multi-seed evaluation, a built-in grid-search sweep, learning-curve plots,
-  model cards, JSON+Markdown experiment reports, an experiment registry and
-  cross-experiment ranking. Turns "train a PPO agent" into "produce reproducible,
-  comparable experimental results".
+![Python](https://img.shields.io/badge/python-3.12+-blue.svg)
+![RL](https://img.shields.io/badge/RL-PPO%20(Stable--Baselines3)-orange.svg)
+![Env](https://img.shields.io/badge/env-CarRacing--v3-brightgreen.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Status](https://img.shields.io/badge/release-v1.0-blueviolet.svg)
+
+</div>
 
 ---
 
-## Project Overview
+## Overview
 
-| Capability         | Module                                    | Description                                                  |
-| ------------------ | ----------------------------------------- | ------------------------------------------------------------ |
-| Environment        | `simulator/env.py`                        | OO wrapper around `CarRacing-v3` (`reset/step/close`).       |
-| Environment factory| `simulator/environment_factory.py`        | `make_env(config)` — the only place envs are created.        |
-| Wrappers           | `simulator/wrappers/`                     | Gymnasium-convention observation/reward/action wrappers.     |
-| Manual driving     | `simulator/manual_drive.py`               | Drive with the arrow keys (PyGame).                          |
-| Telemetry          | `simulator/telemetry.py`                  | Per-frame logging (wide, optional-field schema) to CSV.      |
-| Recording          | `simulator/recorder.py`                   | Frames + actions + rewards + metadata to compressed `.npz`.  |
-| Replay             | `simulator/replay.py`                     | Replay a recording independently of the simulator.           |
-| Evaluation         | `evaluation/`                             | Episode metrics and serialisable summaries (dataclasses).    |
-| Logging            | `utils/logger.py`                         | Console + `logs/project.log`, configured once.               |
-| Seeding            | `utils/seed.py`                           | `set_global_seed` — Python / NumPy / PyTorch (if installed). |
-| Configuration      | `config/`                                 | Simulator, experiment, logging, path and RL configuration.   |
-| Callbacks          | `training/callbacks/`                     | Reusable training-callback interfaces.                       |
-| Agents             | `agents/`                                 | `BaseAgent` interface, `RandomAgent`, `PPOAgent` (SB3).      |
-| Trainer            | `training/trainer.py`                     | Algorithm-agnostic train → evaluate → checkpoint loop.       |
-| Evaluation pipeline| `evaluation/evaluator.py` · `benchmark.py`| Multi-episode benchmark with structured metrics.            |
-| Checkpoints        | `training/checkpoint_manager.py`          | Latest + best checkpoint save/load.                          |
-| Experiment runner  | `experiments/run_experiment.py`           | Main entry point: config → env → agent → train → evaluate.   |
+RaceMind AI is an end-to-end reinforcement-learning **research platform**, not a
+single training script. It provides a modular simulator, a PPO training stack, a
+statistical evaluation and benchmarking suite, a controlled-experiment framework,
+and a modular reward-shaping framework — all built to answer one question rigorously:
 
----
+> **Does a given change actually improve the agent — and can we prove it?**
+
+Every training run is treated as a controlled experiment: exactly one variable
+changes, everything else matches a **frozen baseline**, and the result is judged by
+a paired statistical test with a clear verdict (*Improved / No significant change /
+Regressed*).
+
+## Motivation
+
+PPO is high-variance. On a limited (CPU) compute budget, informal single-run
+comparisons routinely mislead. RaceMind AI was built to make RL claims *falsifiable*:
+a permanent baseline, a fixed evaluation protocol (30 deterministic episodes, fixed
+seeds), paired t-tests, confidence intervals, and effect sizes — so that "this helps"
+is a measurement, not a hunch.
+
+## Key features
+
+- 🧩 **Layered, interface-driven architecture** — algorithms and rewards are pluggable.
+- 🚗 **Simulator toolkit** — env factory, manual driving, telemetry, recording, replay.
+- 🤖 **PPO pipeline** (Stable-Baselines3) with an algorithm-agnostic chunked trainer:
+  periodic eval, best/latest checkpointing, resume-continuity, plateau early-stopping.
+- 📊 **Rigorous evaluation** — 30-episode fixed-seed protocol, 95% CIs, paired t-tests,
+  Cohen's d, automatic verdicts vs. a frozen baseline.
+- 🔬 **Controlled experiments** — auto specs, model cards, learning curves, videos,
+  and generated research papers.
+- 🎛️ **Modular reward framework** — YAML-configurable, composable reward components
+  with per-component logging and plots (training-only, baseline stays comparable).
+- 📁 **Reproducibility** — global seeding, immutable baseline, structured archives,
+  TensorBoard, JSON + Markdown reports.
 
 ## Architecture
 
-```
-                 ┌──────────────────────────────────────────┐
-                 │                config/                     │
-                 │  paths.py · simulator.py · experiment.py   │
-                 │  logging.py   (config.py = compat shim)    │
-                 └───────────────────┬────────────────────────┘
-                                     │ (configuration injected)
-        ┌───────────────────────────┼────────────────────────────┐
-        │                           │                            │
-┌───────▼────────────┐   ┌──────────▼───────────┐    ┌───────────▼─────────┐
-│ environment_factory │   │      utils/          │    │     evaluation/     │
-│   make_env(config)  │   │ logger · seed · io   │    │ metrics · summaries │
-└───────┬─────────────┘   │ paths                │    └─────────────────────┘
-        │ builds + wraps   └──────────────────────┘
-        ▼
-┌────────────────────┐     ┌───────────────────────────────────────────────┐
-│  simulator/env.py  │     │  simulator/wrappers/                            │
-│      RaceEnv       │◀────│  Observation · Reward · Action (identity today) │
-└───────┬────────────┘     └───────────────────────────────────────────────┘
-        │
-        ▼
-┌────────────────────┐   telemetry.py (CSV) · recorder.py (.npz) · replay.py
-│  manual_drive.py   │
-└────────────────────┘   training/callbacks/ — interfaces for Phase 2
-
-  simulator/utils.py → re-exports utils/ (backwards compatibility shim)
+```mermaid
+flowchart TD
+    A["Simulator (CarRacing-v3)"] --> B["Environment factory"]
+    B --> C["Wrappers: Observation · Reward · Action · Monitor"]
+    C --> D["Reward framework (opt-in, training only)"]
+    D --> E["PPO Agent (BaseAgent → PPOAgent)"]
+    E --> F["Trainer (chunked · checkpoint · early-stop)"]
+    F --> G["Evaluation (30 episodes · 95% CI)"]
+    G --> H["Benchmarking (paired t-test · Cohen's d)"]
+    H --> I["Research reports (model cards · curves · papers)"]
 ```
 
-**Design principles**
+More detail in [`docs/architecture.md`](docs/architecture.md).
 
-- **Single creation point:** environments are built only via `make_env`.
-- **Configuration is injected**, never imported ad-hoc.
-- **Low coupling:** `replay.py` and `evaluation/` depend only on data formats, not
-  on the live environment; `utils/` is dependency-light and import-cycle-free.
-- **Backwards compatibility:** `config/config.py` and `simulator/utils.py` remain
-  as thin re-export shims so Phase 1 imports keep working.
-- OOP for stateful components, dataclasses for plain data, full type hints.
-
----
-
-## Folder Structure
+## Folder structure
 
 ```
 racemind-ai/
-│
-├── config/
-│   ├── paths.py            # PROJECT_ROOT + canonical data layout
-│   ├── simulator.py        # SimulatorConfig
-│   ├── experiment.py       # ExperimentConfig (composes SimulatorConfig)
-│   ├── logging.py          # LoggingConfig
-│   └── config.py           # backwards-compat shim
-│
-├── utils/
-│   ├── paths.py            # dirs, timestamps, naming
-│   ├── io.py               # CSV / JSON / atomic writes
-│   ├── logger.py           # project logging setup
-│   └── seed.py             # set_global_seed
-│
-├── simulator/
-│   ├── env.py              # RaceEnv + build_gym_env
-│   ├── environment_factory.py
-│   ├── wrappers/           # base / observation / reward / action
-│   ├── manual_drive.py
-│   ├── telemetry.py
-│   ├── recorder.py
-│   ├── replay.py
-│   └── utils.py            # backwards-compat shim → utils/
-│
-├── agents/
-│   ├── base_agent.py       # BaseAgent interface (act/predict/learn/save/load)
-│   ├── random_agent.py     # RandomAgent baseline
-│   └── ppo_agent.py        # PPOAgent (wraps Stable-Baselines3 PPO)
-│
-├── training/
-│   ├── trainer.py          # generic Trainer + build_trainer + TrainingSummary
-│   ├── ppo_trainer.py      # build_ppo_trainer (PPO agent + Trainer assembly)
-│   ├── training_loop.py    # run_episode rollout (agent-agnostic)
-│   ├── checkpoint_manager.py  # latest + best checkpoints
-│   └── callbacks/          # base / checkpoint / logging / video
-│
-├── evaluation/
-│   ├── metrics.py          # EpisodeMetrics + compute_episode_metrics
-│   ├── episode_summary.py  # EpisodeSummary + summarize_recording
-│   ├── benchmark.py        # BenchmarkResult + aggregate_outcomes
-│   ├── evaluator.py        # Evaluator (multi-episode)
-│   ├── benchmark_runner.py # BenchmarkRunner (compare multiple agents)
-│   ├── benchmark_report.py # comparison tables → Markdown + JSON
-│   ├── multi_seed.py       # multi-seed evaluation + aggregation
-│   ├── learning_curves.py  # matplotlib training/eval plots
-│   ├── model_card.py       # per-model metadata JSON
-│   └── report.py           # experiment report (Markdown + JSON)
-│
-├── configs/                # ppo.yaml · simulator.yaml · evaluation.yaml
-│
-├── experiments/
-│   ├── run_experiment.py   # CLI entry point (delegates to runner)
-│   ├── runner.py           # execute_experiment — orchestration hub
-│   ├── sweep.py            # built-in grid-search sweep
-│   ├── registry.py         # ExperimentRegistry (index of experiments)
-│   ├── ranking.py          # cross-experiment leaderboard → CSV
-│   └── ppo/ sac/ a2c/ imitation/   # per-algorithm output folders
-│
-├── data/                   # telemetry/ recordings/ videos/ plots/
-│                           # evaluation/ models/ checkpoints/ (git-ignored)
-├── runs/                   # TensorBoard logs (git-ignored)
-├── logs/                   # project.log (git-ignored)
-├── notebooks/ · docs/
-│
-├── requirements.txt · README.md · .gitignore
+├── simulator/      # CarRacing-v3 wrapper, factory, wrappers, telemetry, replay
+├── agents/         # BaseAgent interface, PPOAgent (SB3), RandomAgent
+├── training/       # trainer, checkpoint manager, training loop, callbacks
+├── evaluation/     # evaluator, statistics (95% CI), benchmark, model cards, plots
+├── reward/         # modular reward framework (components, manager, shaping, plots)
+├── research/       # baseline, experiment specs, comparison, papers, reports
+├── experiments/    # experiment runner, sweep, registry, ranking
+├── config/         # simulator / RL / logging / paths configuration
+├── configs/        # YAML: ppo, simulator, evaluation, reward_*
+├── utils/          # logging, seeding, io, paths, git info
+├── docs/           # architecture, training, evaluation, experiments, reward, assets
+├── data/           # generated telemetry / recordings / checkpoints (git-ignored)
+└── *.py            # training & evaluation entry-point scripts
 ```
-
----
 
 ## Installation
 
-Python **3.12+** is recommended.
+Requires **Python 3.12+**.
 
 ```bash
-# 1. Create and activate a virtual environment
+git clone <your-fork-url> racemind-ai && cd racemind-ai
 python -m venv .venv
-# Windows (PowerShell):
-.venv\Scripts\Activate.ps1
-# macOS / Linux:
-source .venv/bin/activate
-
-# 2. Install dependencies
+.venv\Scripts\Activate.ps1        # Windows
+# source .venv/bin/activate       # macOS / Linux
 pip install -r requirements.txt
 ```
 
-> Box2D ships as a pre-built wheel (`box2d==2.3.10`), so no C++ compiler is
-> required. All commands below run from the project root and use Python's `-m`
-> module syntax so package imports resolve correctly.
+> Box2D ships as a pre-built wheel, so no C++ toolchain is needed.
 
----
-
-## Developer Setup & Usage
-
-**Run the environment** (random-action smoke test with debug logging):
+## Quick start
 
 ```bash
+# See the environment run (random policy)
 python -m simulator.env
-```
 
-**Drive manually** (telemetry is always logged; `--record` saves an `.npz`):
-
-```bash
+# Drive it yourself (arrow keys)
 python -m simulator.manual_drive
-python -m simulator.manual_drive --record --episode 1
+
+# Tiny end-to-end training smoke test
+python train_smoke_test.py
 ```
 
-| Key | Action | | Key | Action |
-| --- | ------ | --- | --- | ------ |
-| ↑ | Accelerate | | ← / → | Steer |
-| ↓ | Brake | | ESC | Quit |
-
-**Replay a recording** (independent of the simulator):
+## Training
 
 ```bash
-python -m simulator.replay data/recordings/episode_001_<timestamp>.npz
+python train_100k.py          # scale-up runs
+python train_1m.py            # baseline-scale run (~hours on CPU)
+tensorboard --logdir runs     # watch progress
 ```
 
-**Create an environment in code** (always via the factory):
+Hyperparameters live in `configs/ppo.yaml`. See [`docs/training.md`](docs/training.md).
 
-```python
-from simulator.environment_factory import make_env
-from config.simulator import SimulatorConfig
-
-config = SimulatorConfig(render_mode="rgb_array")
-with make_env(config) as env:
-    obs, info = env.reset(seed=42)
-    obs, reward, terminated, truncated, info = env.step(env.sample_action())
-```
-
-**Logging** is configured automatically on first use and writes to both the
-console and `logs/project.log`:
-
-```
-2026-06-25 18:41:22 INFO Environment initialized: CarRacing-v3
-```
-
----
-
-## Reinforcement Learning (Phase 2)
-
-All experiment parameters live in `configs/*.yaml` (`ppo.yaml`, `simulator.yaml`,
-`evaluation.yaml`) — edit those rather than hardcoding values. The experiment
-runner is the single entry point.
-
-**Train PPO:**
+## Evaluation
 
 ```bash
-python -m experiments.run_experiment --experiment-name ppo_carracing
+python evaluate_best.py        # evaluate a best checkpoint
+python compare_checkpoints.py  # high-confidence 30-episode head-to-head
+python watch_agent.py          # record a video of a trained agent
 ```
 
-This loads the configs, seeds everything, creates the training and evaluation
-environments, builds the PPO agent and trainer, then trains while periodically
-evaluating and checkpointing. CLI overrides are available, e.g.:
+The evaluation protocol is fixed and native-reward-only. See
+[`docs/evaluation.md`](docs/evaluation.md).
+
+## Experiment workflow
 
 ```bash
-python -m experiments.run_experiment --total-timesteps 200000 --seed 123
+python run_experiment_001.py                                   # LR-schedule study
+python -m research.run_reward_experiment --config configs/reward_smooth_steering.yaml
 ```
 
-**Sanity-check with the random baseline** (same framework, no learning):
+One variable changes; everything else matches the baseline; a paired comparison and
+a research paper are produced automatically. See [`docs/experiments.md`](docs/experiments.md).
+
+## Benchmark methodology
+
+- **30 deterministic episodes**, fixed seeds 1000–1029, native task reward.
+- **Paired t-test** vs. the frozen baseline (shared seeds ⇒ pairing), **Cohen's d**,
+  and non-overlapping 95% CIs as a conservative check.
+- Verdict: **Improved / No significant change / Regressed**.
+
+## Results
+
+Frozen baseline: **mean reward 598.42**, 95% CI [544.78, 652.05] (30 episodes).
+
+| Experiment | Change | Mean | Δ | Verdict |
+| --- | --- | ---: | ---: | :---: |
+| **Baseline PPO** | — | **598.42** | — | reference |
+| Continue Training | +1M→3M steps | 420.94 | −29.7% | **Regressed** |
+| Learning-Rate Schedule | constant → linear decay | 434.10 | −27.5% | **Regressed** |
+| RGB FrameStack | 1 → 4 frames | 411.07 | −31.3% | **Regressed** |
+
+Full tables and statistics: [`research/results_summary.md`](research/results_summary.md).
+
+## Research findings
+
+**Every controlled change tested so far regressed against the baseline** at the fixed
+CPU budget. We report this honestly:
+
+- *Continued training* and the *LR schedule* drifted a converged policy downward
+  (the regression appears before decay takes effect — a continuation confound).
+- *Frame stacking* quadrupled the input to 12 channels, trained ~5× slower, and was
+  still improving at 1M steps — i.e. undertrained and confounded by channel count.
+
+No easy win was found. The value here is the **method**: reproducible, statistically
+tested, honestly reported negatives. See the write-up in
+[`research/final_report.md`](research/final_report.md) and the honest per-experiment
+papers in `research/experiments/`.
+
+## Videos
+
+Videos of trained policies are generated locally (git-ignored to keep the repo light):
 
 ```bash
-python -m experiments.run_experiment --experiment-name rnd --algorithm random --total-timesteps 2000
+python watch_agent.py     # → research/experiments/<id>/videos/*.mp4
 ```
 
-**Evaluate** — a multi-episode benchmark runs automatically at the end of
-training and writes `data/evaluation/<experiment-name>.json` (average / max / min
-reward, reward variance, episode length, success rate). To evaluate a saved
-agent without training:
+See [`docs/assets.md`](docs/assets.md) for where every artifact lives.
 
-```bash
-python -m experiments.run_experiment --experiment-name ppo_carracing --eval-only --resume
-```
+## Future work
 
-**Resume training** from the latest checkpoint:
+- Multi-seed runs for variance estimates and higher statistical power.
+- Grayscale + FrameStack(4) to isolate temporal information from channel count.
+- Complete the staged reward ablations (SmoothSteering, +IdlePenalty).
+- GPU training to lift the compute ceiling.
 
-```bash
-python -m experiments.run_experiment --experiment-name ppo_carracing --resume
-```
+## Acknowledgements
 
-Checkpoints are written to `data/checkpoints/<experiment-name>/` as `latest.zip`
-and `best.zip` (best by mean evaluation reward).
+Built on [Gymnasium](https://gymnasium.farama.org/) (`CarRacing-v3`),
+[Stable-Baselines3](https://stable-baselines3.readthedocs.io/), and PyTorch. Thanks
+to the Farama Foundation and the SB3 maintainers.
 
-**Evaluation videos** are recorded automatically (Gymnasium's `RecordVideo`) to
-`data/videos/<experiment-name>/` — disable with `--no-video`. They are standard
-`.mp4` files; open them in any player. (The Phase 1 `.npz` replay viewer is
-separate and used for manually recorded episodes.)
+## License
 
-**TensorBoard** logs are written to `runs/<experiment-name>/`:
-
-```bash
-tensorboard --logdir runs
-```
-
----
-
-## Research & Benchmarking (Phase 3)
-
-Phase 3 makes every run reproducible and comparable. The experiment runner is
-also the research entry point — a single `run` now produces a full artifact set.
-
-### Research workflow (what one experiment produces)
-
-```bash
-python -m experiments.run_experiment --experiment-name ppo_carracing --multi-seed
-```
-
-Outputs:
-
-| Artifact | Location |
-| --- | --- |
-| Checkpoints (`latest.zip`, `best.zip`) | `data/checkpoints/<name>/` |
-| Model card (`model_card.json`) | `data/checkpoints/<name>/` |
-| Learning-curve plots (`*.png`) | `data/plots/<name>/` |
-| Report (`report.md`, `report.json`) | `data/evaluation/<name>/` |
-| Multi-seed summary (`multi_seed.json`) | `data/evaluation/<name>/` |
-| Evaluation videos (`*.mp4`) | `data/videos/<name>/` |
-| Registry + leaderboard | `data/evaluation/registry.json`, `rankings.csv` |
-| TensorBoard logs | `runs/<name>/` |
-
-Learning curves cover episode reward, moving-average reward, episode length,
-evaluation reward, training FPS and loss (when available).
-
-### Multi-seed evaluation
-
-`--multi-seed` evaluates the trained agent across the seeds in
-`configs/evaluation.yaml` (`eval_seeds`) and reports mean, standard deviation,
-and best/worst runs — quantifying how reliable the result is.
-
-### Benchmark workflow (compare agents)
-
-```python
-from agents.random_agent import RandomAgent
-from agents.ppo_agent import PPOAgent
-from config.simulator import SimulatorConfig
-from simulator.environment_factory import make_eval_env
-from evaluation.benchmark_runner import BenchmarkRunner
-from evaluation.benchmark_report import save_comparison
-
-env = make_eval_env(SimulatorConfig(), record_video=False)
-agents = {"random": RandomAgent(env.action_space), "ppo": PPOAgent(env)}
-comparison = BenchmarkRunner(env, n_episodes=10).run(agents)
-save_comparison(comparison, SimulatorConfig().evaluation_dir / "benchmark")
-env.close()
-```
-
-Produces a comparison table (avg / max / min / median / std reward, average
-length, success rate, evaluation time) as Markdown + JSON.
-
-### Hyperparameter sweep guide
-
-A built-in grid search (no Optuna / Ray) over PPO hyperparameters
-(`learning_rate`, `gamma`, `batch_size`, `n_steps`, `clip_range`):
-
-```bash
-python -m experiments.sweep --sweep-name lr_gamma \
-    --param learning_rate=3e-4,1e-4 --param gamma=0.99,0.95 \
-    --total-timesteps 50000
-```
-
-Each combination runs a full experiment; results are ranked and written to
-`data/evaluation/<sweep-name>/sweep_results.json` and `sweep_ranking.csv`.
-
-### Experiment registry & ranking
-
-Every completed experiment is recorded in `data/evaluation/registry.json` and the
-leaderboard `rankings.csv` is refreshed automatically. Query the registry in
-code:
-
-```python
-from experiments.registry import ExperimentRegistry
-registry = ExperimentRegistry()
-registry.filter(algorithm="PPO", environment="CarRacing-v3")
-registry.find("ppo_carracing")
-```
-
----
-
-## Future Roadmap
-
-- **Phase 2 (done) — Baseline RL framework:** pluggable agents, PPO via SB3, a
-  generic trainer, evaluation pipeline, checkpoints, videos and TensorBoard.
-- **Phase 3 (done) — Experimentation & benchmark suite:** multi-agent benchmarks,
-  multi-seed evaluation, grid-search sweeps, learning curves, model cards,
-  experiment reports, registry and ranking.
-- **Phase 4 — More algorithms:** add SAC and A2C as new `BaseAgent`
-  implementations (trainer, evaluator and benchmark suite need no changes).
-- **Phase 4 — Observation/reward engineering:** promote the identity wrappers to
-  real transforms (normalization, frame stacking, resizing, reward shaping).
-- **Phase 5 — Autonomous racing intelligence:** self-improving agents, track
-  generalization and large-scale benchmarking.
-
-> The framework is intentionally decoupled — algorithm code depends only on the
-> `BaseAgent` interface, so each later phase builds on it without rewrites.
+Released under the [MIT License](LICENSE).
