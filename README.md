@@ -12,6 +12,12 @@ Train, evaluate, and *scientifically* compare PPO agents on Gymnasium's `CarRaci
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Status](https://img.shields.io/badge/release-v1.0-blueviolet.svg)
 
+<br/>
+
+<img src="assets/gifs/ppo_agent.gif" alt="PPO agent driving CarRacing-v3" width="480"/>
+
+*The frozen baseline PPO agent (mean reward **598.42**) driving `CarRacing-v3`.*
+
 </div>
 
 ---
@@ -159,12 +165,30 @@ Frozen baseline: **mean reward 598.42**, 95% CI [544.78, 652.05] (30 episodes).
 
 | Experiment | Change | Mean | Δ | Verdict |
 | --- | --- | ---: | ---: | :---: |
-| **Baseline PPO** | — | **598.42** | — | reference |
-| Continue Training | +1M→3M steps | 420.94 | −29.7% | **Regressed** |
-| Learning-Rate Schedule | constant → linear decay | 434.10 | −27.5% | **Regressed** |
-| RGB FrameStack | 1 → 4 frames | 411.07 | −31.3% | **Regressed** |
+| **Baseline PPO** | — | **598.42** | — | ✅ baseline |
+| Continue Training | +1M→3M steps | 420.94 | −29.7% | ❌ Regressed |
+| Learning-Rate Schedule | constant → linear decay | 434.10 | −27.5% | ❌ Regressed |
+| RGB FrameStack | 1 → 4 frames | 411.07 | −31.3% | ❌ Regressed |
 
 Full tables and statistics: [`research/results_summary.md`](research/results_summary.md).
+
+## Training progress
+
+The baseline PPO agent climbing over 1,000,000 steps — training reward and
+evaluation reward at each checkpoint:
+
+<p align="center">
+  <img src="assets/images/baseline_training_reward.png" alt="Training reward vs timesteps" width="45%"/>
+  <img src="assets/images/baseline_eval_reward.png" alt="Evaluation reward at checkpoints" width="45%"/>
+</p>
+
+### Learning journey
+
+From a random policy to the trained agent — the same seed at four training stages:
+
+<div align="center">
+  <img src="assets/gifs/learning_journey.gif" alt="Random → 100K → 500K → 1M learning progression" width="480"/>
+</div>
 
 ## Research findings
 
