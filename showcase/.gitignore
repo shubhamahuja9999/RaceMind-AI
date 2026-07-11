@@ -1,0 +1,14 @@
+# Backend
+backend/videos/
+backend/best.zip
+backend/__pycache__/
+*.py[cod]
+
+# Node / Next.js (also covered by frontend/.gitignore)
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# Env
+.env
+.env.local

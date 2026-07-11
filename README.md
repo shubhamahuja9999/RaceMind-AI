@@ -99,7 +99,7 @@ racemind-ai/
 Requires **Python 3.12+**.
 
 ```bash
-git clone <your-fork-url> racemind-ai && cd racemind-ai
+git clone https://github.com/shubhamahuja9999/RaceMind-AI.git && cd RaceMind-AI
 python -m venv .venv
 .venv\Scripts\Activate.ps1        # Windows
 # source .venv/bin/activate       # macOS / Linux

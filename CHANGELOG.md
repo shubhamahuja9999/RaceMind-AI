@@ -45,4 +45,4 @@ platform built around Gymnasium's `CarRacing-v3`.
 - `speed`/`centerline`/`collision` reward components are proxies/placeholders
   where `CarRacing-v3` does not expose the underlying signal.
 
-[1.0.0]: https://github.com/your-username/racemind-ai/releases/tag/v1.0.0
+[1.0.0]: https://github.com/shubhamahuja9999/RaceMind-AI/releases/tag/v1.0.0

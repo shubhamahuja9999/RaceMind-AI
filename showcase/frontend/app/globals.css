@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-white text-slate-800 antialiased;
+}
+
+/* Subtle dotted grid background used behind the hero. */
+.grid-bg {
+  background-image: radial-gradient(circle, rgb(148 163 184 / 0.18) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* Section wrapper spacing. */
+.section {
+  @apply mx-auto w-full max-w-6xl px-5 sm:px-8;
+}
+
+/* Reusable card. */
+.card {
+  @apply rounded-2xl border border-slate-200 bg-white shadow-card transition-shadow duration-300;
+}
+.card:hover {
+  @apply shadow-cardHover;
+}
+
+/* Eyebrow / section label. */
+.eyebrow {
+  @apply inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500;
+}

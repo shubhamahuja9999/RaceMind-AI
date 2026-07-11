@@ -1,0 +1,350 @@
+{
+  "training": [
+    {
+      "step": 2048,
+      "trainReward": -57.49,
+      "loss": null,
+      "fps": 85,
+      "lr": null,
+      "entropy": null
+    },
+    {
+      "step": 22528,
+      "trainReward": -54.44,
+      "loss": 0.0197,
+      "fps": 57,
+      "lr": 0.0003,
+      "entropy": -4.1008
+    },
+    {
+      "step": 43008,
+      "trainReward": -56.85,
+      "loss": 0.0005,
+      "fps": 57,
+      "lr": 0.0003,
+      "entropy": -3.899
+    },
+    {
+      "step": 63488,
+      "trainReward": -49.34,
+      "loss": -0.0196,
+      "fps": 56,
+      "lr": 0.0003,
+      "entropy": -3.6386
+    },
+    {
+      "step": 83968,
+      "trainReward": -17.13,
+      "loss": 0.0868,
+      "fps": 54,
+      "lr": 0.0003,
+      "entropy": -3.3896
+    },
+    {
+      "step": 104448,
+      "trainReward": 66.48,
+      "loss": 0.4491,
+      "fps": 59,
+      "lr": 0.0003,
+      "entropy": -3.2135
+    },
+    {
+      "step": 124928,
+      "trainReward": 162.31,
+      "loss": 0.6225,
+      "fps": 55,
+      "lr": 0.0003,
+      "entropy": -3.104
+    },
+    {
+      "step": 145408,
+      "trainReward": 257.59,
+      "loss": 1.128,
+      "fps": 54,
+      "lr": 0.0003,
+      "entropy": -3.1567
+    },
+    {
+      "step": 165888,
+      "trainReward": 359.97,
+      "loss": 0.4963,
+      "fps": 54,
+      "lr": 0.0003,
+      "entropy": -3.1395
+    },
+    {
+      "step": 186368,
+      "trainReward": 411.87,
+      "loss": 0.4505,
+      "fps": 25,
+      "lr": 0.0003,
+      "entropy": -3.2034
+    },
+    {
+      "step": 206848,
+      "trainReward": 415.5,
+      "loss": 0.3773,
+      "fps": 54,
+      "lr": 0.0003,
+      "entropy": -3.2605
+    },
+    {
+      "step": 227328,
+      "trainReward": 354.51,
+      "loss": 0.0357,
+      "fps": 53,
+      "lr": 0.0003,
+      "entropy": -3.3269
+    },
+    {
+      "step": 247808,
+      "trainReward": 288.47,
+      "loss": 0.2134,
+      "fps": 51,
+      "lr": 0.0003,
+      "entropy": -3.4658
+    },
+    {
+      "step": 268288,
+      "trainReward": 221.52,
+      "loss": 0.7737,
+      "fps": 49,
+      "lr": 0.0003,
+      "entropy": -3.5694
+    },
+    {
+      "step": 288768,
+      "trainReward": 176.0,
+      "loss": 0.106,
+      "fps": 48,
+      "lr": 0.0003,
+      "entropy": -3.6307
+    },
+    {
+      "step": 309248,
+      "trainReward": 120.43,
+      "loss": 0.2979,
+      "fps": 52,
+      "lr": 0.0003,
+      "entropy": -3.7522
+    },
+    {
+      "step": 329728,
+      "trainReward": 141.21,
+      "loss": 0.34,
+      "fps": 47,
+      "lr": 0.0003,
+      "entropy": -3.8631
+    },
+    {
+      "step": 350208,
+      "trainReward": 148.58,
+      "loss": 0.1465,
+      "fps": 47,
+      "lr": 0.0003,
+      "entropy": -3.971
+    },
+    {
+      "step": 370688,
+      "trainReward": 142.26,
+      "loss": 0.2153,
+      "fps": 47,
+      "lr": 0.0003,
+      "entropy": -4.0018
+    },
+    {
+      "step": 391168,
+      "trainReward": 132.24,
+      "loss": 0.1916,
+      "fps": 47,
+      "lr": 0.0003,
+      "entropy": -3.9316
+    },
+    {
+      "step": 411648,
+      "trainReward": 94.19,
+      "loss": -0.0086,
+      "fps": 2,
+      "lr": 0.0003,
+      "entropy": -3.9046
+    },
+    {
+      "step": 432128,
+      "trainReward": 68.64,
+      "loss": 0.307,
+      "fps": 7,
+      "lr": 0.0003,
+      "entropy": -3.8652
+    },
+    {
+      "step": 452608,
+      "trainReward": 69.0,
+      "loss": 0.0392,
+      "fps": 10,
+      "lr": 0.0003,
+      "entropy": -3.8106
+    },
+    {
+      "step": 473088,
+      "trainReward": 47.15,
+      "loss": 0.0269,
+      "fps": 14,
+      "lr": 0.0003,
+      "entropy": -3.8274
+    },
+    {
+      "step": 493568,
+      "trainReward": 29.3,
+      "loss": 0.2181,
+      "fps": 16,
+      "lr": 0.0003,
+      "entropy": -3.8152
+    },
+    {
+      "step": 514048,
+      "trainReward": 81.55,
+      "loss": 0.7737,
+      "fps": 62,
+      "lr": 0.0003,
+      "entropy": -3.8437
+    },
+    {
+      "step": 534528,
+      "trainReward": 125.94,
+      "loss": 0.482,
+      "fps": 62,
+      "lr": 0.0003,
+      "entropy": -3.9165
+    },
+    {
+      "step": 555008,
+      "trainReward": 129.34,
+      "loss": 1.7566,
+      "fps": 60,
+      "lr": 0.0003,
+      "entropy": -4.0356
+    },
+    {
+      "step": 575488,
+      "trainReward": 216.68,
+      "loss": 0.4575,
+      "fps": 58,
+      "lr": 0.0003,
+      "entropy": -4.1947
+    },
+    {
+      "step": 595968,
+      "trainReward": 274.85,
+      "loss": 0.8127,
+      "fps": 25,
+      "lr": 0.0003,
+      "entropy": -4.2833
+    },
+    {
+      "step": 616448,
+      "trainReward": 298.71,
+      "loss": 0.4883,
+      "fps": 71,
+      "lr": 0.0003,
+      "entropy": -4.2442
+    },
+    {
+      "step": 636928,
+      "trainReward": 314.93,
+      "loss": 0.2321,
+      "fps": 4,
+      "lr": 0.0003,
+      "entropy": -4.3722
+    },
+    {
+      "step": 657408,
+      "trainReward": 323.85,
+      "loss": 0.3774,
+      "fps": 6,
+      "lr": 0.0003,
+      "entropy": -4.3801
+    },
+    {
+      "step": 677888,
+      "trainReward": 293.24,
+      "loss": 0.2228,
+      "fps": 5,
+      "lr": 0.0003,
+      "entropy": -4.4572
+    },
+    {
+      "step": 698368,
+      "trainReward": 279.1,
+      "loss": 0.3202,
+      "fps": 6,
+      "lr": 0.0003,
+      "entropy": -4.4232
+    },
+    {
+      "step": 718848,
+      "trainReward": 256.02,
+      "loss": 0.1686,
+      "fps": 55,
+      "lr": 0.0003,
+      "entropy": -4.497
+    },
+    {
+      "step": 739328,
+      "trainReward": 225.81,
+      "loss": 0.312,
+      "fps": 57,
+      "lr": 0.0003,
+      "entropy": -4.7159
+    },
+    {
+      "step": 759808,
+      "trainReward": 222.74,
+      "loss": 0.127,
+      "fps": 56,
+      "lr": 0.0003,
+      "entropy": -4.755
+    },
+    {
+      "step": 780288,
+      "trainReward": 204.41,
+      "loss": -0.0064,
+      "fps": 56,
+      "lr": 0.0003,
+      "entropy": -4.7457
+    },
+    {
+      "step": 802816,
+      "trainReward": 169.56,
+      "loss": -0.0194,
+      "fps": 39,
+      "lr": 0.0003,
+      "entropy": -4.7413
+    }
+  ],
+  "evalReward": [
+    {
+      "step": 100000,
+      "reward": 152.83
+    },
+    {
+      "step": 300000,
+      "reward": 286.4
+    },
+    {
+      "step": 500000,
+      "reward": 402.91
+    },
+    {
+      "step": 700000,
+      "reward": 511.2
+    },
+    {
+      "step": 900000,
+      "reward": 618.65
+    },
+    {
+      "step": 1000000,
+      "reward": 598.42
+    }
+  ]
+}
