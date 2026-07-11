@@ -37,3 +37,17 @@ body {
 .eyebrow {
   @apply inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500;
 }
+
+/* Loading screen animated bar. */
+@keyframes loading-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+.loading-bar {
+  width: 50%;
+  animation: loading-sweep 1.2s ease-in-out infinite;
+}

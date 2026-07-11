@@ -8,6 +8,7 @@ rendered MP4 plus metrics. No database, no auth — a pure inference showcase.
 from __future__ import annotations
 
 import os
+import threading
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException
@@ -74,16 +75,27 @@ def model_info() -> dict:
     return {**MODEL_INFO, "model_loaded": engine.loaded}
 
 
+# Only one inference at a time — prevents abuse / GPU/CPU overload.
+_inference_lock = threading.Lock()
+
+
 def _run(policy: str, seed: int) -> dict:
     """Run one episode and return the serialised result."""
     if policy not in ("best", "random"):
         raise HTTPException(status_code=400, detail="policy must be 'best' or 'random'")
     if policy == "best" and not engine.loaded:
         raise HTTPException(status_code=503, detail="Model not loaded.")
+    if not _inference_lock.acquire(blocking=False):
+        raise HTTPException(
+            status_code=429,
+            detail="An inference is already running. Please wait and try again.",
+        )
     try:
         return engine.run_episode(policy=policy, seed=seed).to_dict()
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+    finally:
+        _inference_lock.release()
 
 
 @app.post("/api/run")
