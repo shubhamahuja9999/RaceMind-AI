@@ -36,6 +36,7 @@ export function Navbar() {
           href={LINKS.github}
           target="_blank"
           rel="noreferrer"
+          aria-label="GitHub repository"
           className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
         >
           <Github className="h-4 w-4" /> <span className="hidden sm:inline">GitHub</span>
