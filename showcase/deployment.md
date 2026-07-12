@@ -35,29 +35,31 @@ repo. Make it available to the backend in one of two ways:
 | `CORS_ORIGINS` | `https://your-app.vercel.app` | Allowed frontend origin(s) |
 | `PORT` | (auto) | Injected by the host |
 
-### Render — native Python (no Docker) ✅ recommended
+### Render — native Python, free tier (no Docker, no Blueprint)
 
-The included `render.yaml` does this automatically: **New → Blueprint → select the
-repo** → it creates the service with the right Python version and build command.
-Then set the two secret env vars (`MODEL_URL`, `CORS_ORIGINS`) in the dashboard.
+Create a **Web Service** manually in the dashboard (Blueprints are not needed).
+The single most important setting is the **Root Directory** — without it, Render
+builds the repo-root `requirements.txt` and stays on Python 3.14, which fails.
 
-To configure a service **by hand** instead, use these settings — they are the fix
-for the pygame/box2d/Python-3.14 build failures:
-
-- **Runtime / Language:** Python
-- **Root Directory:** `showcase/backend`
-- **Build Command:**
-  ```
-  pip install --upgrade pip && pip install swig && pip install torch --index-url https://download.pytorch.org/whl/cpu && pip install -r requirements.txt
-  ```
+- **New → Web Service** → connect the repo
+- **Root Directory:** `showcase/backend`   ← critical (uses the backend's files)
+- **Language:** Python 3   ·   **Instance Type:** Free
+- **Build Command:** `bash build.sh`
+  *(runs `showcase/backend/build.sh`: upgrades pip, installs swig, CPU-torch, then requirements)*
 - **Start Command:** `uvicorn main:app --host 0.0.0.0 --port $PORT`
 - **Environment:** `PYTHON_VERSION=3.12.7`, `SDL_VIDEODRIVER=dummy`, `MODEL_URL=…`,
   `CORS_ORIGINS=…`, `MODEL_PATH=/tmp/best.zip`, `VIDEO_DIR=/tmp/videos`
-- **Instance:** 512 MB+ (PyTorch + CarRacing is memory-heavy; the free tier may OOM)
 
 Why this works: `PYTHON_VERSION=3.12.7` makes pip use pygame's **prebuilt wheel**
-(instead of compiling it and needing SDL), and installing **`swig` first** lets
-Box2D compile. CPU-only torch avoids a multi-GB CUDA download.
+(instead of compiling it and needing SDL), installing **`swig` first** lets Box2D
+compile, and CPU-only torch avoids a multi-GB CUDA download.
+
+> **Free-tier memory note:** the build succeeds on free, but running an episode
+> (PyTorch + CarRacing) is memory-heavy and may occasionally OOM on the 512 MB free
+> instance. If it does, upgrade to a paid instance for the live demo — or just rely
+> on the frontend's committed `demo.mp4`, which shows the agent driving even when
+> the backend is asleep/unavailable. The free service also sleeps after inactivity
+> (~30–60 s cold start), which the frontend handles with a "waking up" hint.
 
 ### Railway / other hosts
 

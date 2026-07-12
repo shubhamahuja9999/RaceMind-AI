@@ -13,13 +13,9 @@ services:
     name: racemind-api
     runtime: python
     rootDir: showcase/backend
-    buildCommand: >-
-      pip install --upgrade pip &&
-      pip install swig &&
-      pip install torch --index-url https://download.pytorch.org/whl/cpu &&
-      pip install -r requirements.txt
+    buildCommand: bash build.sh
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
-    plan: starter          # 512 MB+ recommended; the free plan may OOM under torch
+    plan: free             # 512 MB — see the memory note in deployment.md
     healthCheckPath: /api/health
     autoDeploy: true
     envVars:

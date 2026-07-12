@@ -2,8 +2,9 @@
 # Python 3.12+ recommended. Install with: pip install -r requirements.txt
 
 # --- Core simulator ---
-gymnasium[box2d]>=1.0.0     # CarRacing-v3 environment
-box2d==2.3.10               # physics backend for CarRacing (pre-built wheel, no C++ compiler needed)
+# gymnasium[box2d] installs the Box2D physics backend (box2d-py) + pygame + swig.
+# Do NOT add a bare `box2d` pin — that distribution has no matching version on PyPI.
+gymnasium[box2d]>=1.0.0     # CarRacing-v3 environment (pulls box2d-py, pygame, swig)
 pygame>=2.5.0              # rendering, keyboard control and replay
 numpy>=1.26.0
 pandas>=2.1.0
