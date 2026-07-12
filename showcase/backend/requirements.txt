@@ -1,11 +1,17 @@
-# RaceMind AI Research Lab — backend (inference only, CPU)
+# RaceMind AI Research Lab — backend (inference only, CPU).
+# Use CPU-only PyTorch wheels (smaller, no CUDA) — important for hosts like Render.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
 fastapi>=0.110.0
 uvicorn[standard]>=0.29.0
 pydantic>=2.6.0
+
+# gymnasium[box2d] installs the Box2D physics backend (box2d-py) + swig.
+# Do NOT pin a bare `box2d` package — that distribution has no matching version.
 gymnasium[box2d]>=1.0.0
-box2d==2.3.10
 stable-baselines3>=2.3.0
 torch>=2.2.0
+
 numpy>=1.26.0
 imageio>=2.34.0
-imageio-ffmpeg>=0.4.9
+imageio-ffmpeg>=0.4.9   # bundles a static ffmpeg binary (no system ffmpeg needed)

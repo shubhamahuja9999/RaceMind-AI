@@ -58,13 +58,30 @@ class InferenceEngine:
     model_path: Path
     video_dir: Path
     default_max_steps: int = 600
+    model_url: Optional[str] = None
     _model: Optional[PPO] = field(default=None, init=False)
     _cache: dict[tuple[str, int], EpisodeResult] = field(default_factory=dict, init=False)
 
     def load(self) -> None:
-        """Load the PPO model once (called at startup)."""
+        """Load the PPO model once (called at startup).
+
+        The model file is git-ignored, so on a fresh deploy it may be absent. If
+        ``MODEL_URL`` is set (e.g. a GitHub release asset), it is downloaded to
+        ``model_path`` on first startup.
+        """
         self.video_dir.mkdir(parents=True, exist_ok=True)
+        if not self.model_path.exists() and self.model_url:
+            self._download_model()
         self._model = PPO.load(str(self.model_path), device="cpu")
+
+    def _download_model(self) -> None:
+        """Download the model from ``model_url`` to ``model_path``."""
+        import urllib.request
+
+        self.model_path.parent.mkdir(parents=True, exist_ok=True)
+        print(f"[startup] downloading model from {self.model_url}")
+        urllib.request.urlretrieve(self.model_url, str(self.model_path))
+        print(f"[startup] model saved to {self.model_path}")
 
     @property
     def loaded(self) -> bool:
@@ -132,4 +149,6 @@ def build_engine() -> InferenceEngine:
     model_path = Path(os.getenv("MODEL_PATH", str(default_model)))
     video_dir = Path(os.getenv("VIDEO_DIR", str(Path(__file__).resolve().parent / "videos")))
     max_steps = int(os.getenv("MAX_STEPS", "600"))
-    return InferenceEngine(model_path=model_path, video_dir=video_dir, default_max_steps=max_steps)
+    model_url = os.getenv("MODEL_URL")  # optional: download the model on startup
+    return InferenceEngine(model_path=model_path, video_dir=video_dir,
+                           default_max_steps=max_steps, model_url=model_url)

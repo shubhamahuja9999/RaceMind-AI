@@ -15,37 +15,50 @@ The showcase is two independently deployable pieces:
 ## 1. Backend (Render / Railway / Fly.io)
 
 The backend needs the model file. Either **bake it into the image** (copy
-`best.zip` into `showcase/backend/`) or mount it and set `MODEL_PATH`.
+The model file (`ppo_1m/best.zip`, ~26 MB) is **git-ignored**, so it is not in the
+repo. Make it available to the backend in one of two ways:
 
-```bash
-cp ../data/checkpoints/ppo_1m/best.zip showcase/backend/best.zip
-```
+- **Recommended — download on startup.** Attach `best.zip` to the GitHub release and
+  set `MODEL_URL` to its asset URL; the backend downloads it on first boot.
+- **Or bake it in.** Copy it next to the backend and set `MODEL_PATH=./best.zip`.
+
+> ⚠️ **Use the Docker runtime, not the native Python buildpack.** The native
+> buildpack defaults to a too-new Python and must compile Box2D from source — that
+> is exactly what caused the `box2d`/Python-3.14 build failure. The provided
+> `Dockerfile` pins Python 3.12 and installs `swig` + `ffmpeg`, so it just works.
+> (`requirements.txt` no longer pins a bare `box2d`; `gymnasium[box2d]` supplies the
+> physics backend. A `runtime.txt` pins Python 3.12 if you must use the native path.)
 
 ### Environment variables
 
 | Variable | Example | Purpose |
 | --- | --- | --- |
-| `MODEL_PATH` | `/app/best.zip` | Path to the trained model |
+| `MODEL_URL` | `https://github.com/shubhamahuja9999/RaceMind-AI/releases/download/v1.0.0/best.zip` | Download the model on startup (if `MODEL_PATH` is missing) |
+| `MODEL_PATH` | `/app/best.zip` | Where the model lives / is downloaded to |
 | `VIDEO_DIR` | `/app/videos` | Where MP4s are written/served |
 | `MAX_STEPS` | `600` | Steps per demo episode (snappier demo) |
 | `CORS_ORIGINS` | `https://your-app.vercel.app` | Allowed frontend origin(s) |
 | `PORT` | `8000` | Provided by the host on most platforms |
 
-### Render
+### Render (Docker)
 
-1. New → **Web Service** → point at the repo, root `showcase/backend`.
-2. Runtime: **Docker** (uses the provided `Dockerfile`).
-3. Set the environment variables above.
-4. Deploy. Note the URL, e.g. `https://racemind-api.onrender.com`.
+1. New → **Web Service** → connect the repo, **Root Directory** = `showcase/backend`.
+2. **Runtime / Language: Docker** (Render auto-detects the `Dockerfile`). Do **not**
+   pick the Python buildpack.
+3. Add the environment variables above (at minimum `MODEL_URL` and `CORS_ORIGINS`).
+4. Instance type: use at least the **512 MB+** tier — PyTorch + CarRacing inference
+   is memory-heavy; the free tier may OOM.
+5. Deploy. Note the URL, e.g. `https://racemind-api.onrender.com`.
 
 ### Railway / Fly.io
 
-- **Railway:** new service from repo → root `showcase/backend` → Dockerfile → set env vars.
+- **Railway:** new service from repo → root `showcase/backend` → **Dockerfile** → set env vars.
 - **Fly.io:** `fly launch` in `showcase/backend` (detects the Dockerfile), set
-  secrets with `fly secrets set CORS_ORIGINS=...`, then `fly deploy`.
+  secrets with `fly secrets set CORS_ORIGINS=... MODEL_URL=...`, then `fly deploy`.
 
 > First request runs an episode on CPU (~10–20 s) and caches the MP4; subsequent
-> requests for the same `(policy, seed)` are instant.
+> requests for the same `(policy, seed)` are instant. On free tiers the service may
+> sleep — the frontend shows a "waking up" hint and falls back to a cached demo.
 
 ---
 

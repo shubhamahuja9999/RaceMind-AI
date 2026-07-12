@@ -50,6 +50,8 @@ research/reward_analysis/*/reward_log.csv
 *.zip
 *.mp4
 *.tfevents.*
+# Exception: the small committed showcase fallback demo (played when the backend is asleep).
+!showcase/frontend/public/demo.mp4
 
 # --- OS / editor noise ---
 .DS_Store
