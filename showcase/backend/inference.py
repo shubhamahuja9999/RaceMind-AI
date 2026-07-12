@@ -23,7 +23,6 @@ from typing import Optional  # noqa: E402
 
 import gymnasium as gym  # noqa: E402
 import imageio.v2 as imageio  # noqa: E402
-import numpy as np  # noqa: E402
 from stable_baselines3 import PPO  # noqa: E402
 
 ENV_ID = "CarRacing-v3"
@@ -151,29 +150,39 @@ class InferenceEngine:
 
         max_steps = max_steps or self.default_max_steps
         env = self._make_env()
-        rng = np.random.default_rng(seed)
         observation, _ = env.reset(seed=seed)
 
-        frames: list[np.ndarray] = []
+        filename = f"{policy}_{seed}.mp4"
+        path = self.video_dir / filename
+        # Stream frames straight to the encoder instead of buffering them all in a
+        # list. CarRacing frames are ~0.7 MB each, so 600 of them would hold ~430 MB
+        # in RAM and OOM the 512 MB free tier. With a streaming writer only one
+        # frame is in memory at a time, so memory stays flat.
+        writer = imageio.get_writer(
+            str(path), fps=VIDEO_FPS, codec="libx264",
+            macro_block_size=None, quality=7,
+        )
         total_reward = 0.0
         steps = 0
         done = False
         start = time.perf_counter()
-        while not done and steps < max_steps:
-            frames.append(env.render())
-            if policy == "random":
-                action = env.action_space.sample()
-            else:
-                action, _ = self._model.predict(observation, deterministic=True)
-            observation, reward, terminated, truncated, _ = env.step(action)
-            total_reward += float(reward)
-            steps += 1
-            done = terminated or truncated
+        try:
+            while not done and steps < max_steps:
+                if steps % FRAME_STRIDE == 0:
+                    writer.append_data(env.render())
+                if policy == "random":
+                    action = env.action_space.sample()
+                else:
+                    action, _ = self._model.predict(observation, deterministic=True)
+                observation, reward, terminated, truncated, _ = env.step(action)
+                total_reward += float(reward)
+                steps += 1
+                done = terminated or truncated
+        finally:
+            writer.close()
+            env.close()
         elapsed = time.perf_counter() - start
-        env.close()
 
-        filename = f"{policy}_{seed}.mp4"
-        self._encode(frames, self.video_dir / filename)
         result = EpisodeResult(
             policy=policy, seed=seed, reward=total_reward, length=steps,
             inference_seconds=elapsed,
@@ -182,13 +191,6 @@ class InferenceEngine:
         )
         self._cache[key] = result
         return result
-
-    @staticmethod
-    def _encode(frames: list[np.ndarray], path: Path) -> None:
-        """Encode frames to an MP4 (H.264 via imageio-ffmpeg)."""
-        selected = frames[::FRAME_STRIDE] or frames
-        imageio.mimsave(str(path), selected, fps=VIDEO_FPS, codec="libx264",
-                        macro_block_size=None, quality=7)
 
 
 def build_engine() -> InferenceEngine:
