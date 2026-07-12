@@ -59,18 +59,12 @@ Why this works: `PYTHON_VERSION=3.12.7` makes pip use pygame's **prebuilt wheel*
 (instead of compiling it and needing SDL), and installing **`swig` first** lets
 Box2D compile. CPU-only torch avoids a multi-GB CUDA download.
 
-### Docker (alternative)
+### Railway / other hosts
 
-A `showcase/backend/Dockerfile` is also provided if you prefer a container: set the
-service **Runtime = Docker**. It installs the same deps with system libraries baked
-in. Not required — the native path above is the recommended one here.
-
-### Railway / Fly.io
-
-- **Railway:** new service → root `showcase/backend`. Use the same Build Command and
-  `PYTHON_VERSION=3.12.7` as above (Nixpacks/native), or the `Dockerfile`.
-- **Fly.io:** `fly launch` in `showcase/backend`; set secrets with
-  `fly secrets set CORS_ORIGINS=... MODEL_URL=...`.
+- **Railway:** new service → root `showcase/backend`. Use the same **Build Command**
+  and `PYTHON_VERSION=3.12.7` as above (Nixpacks native build).
+- Any host with a native Python buildpack works the same way: pin Python 3.12,
+  install `swig` before the requirements, and set the environment variables above.
 
 > First request runs an episode on CPU (~10–20 s) and caches the MP4; subsequent
 > requests for the same `(policy, seed)` are instant. On free tiers the service may
@@ -92,22 +86,13 @@ in. Not required — the native path above is the recommended one here.
 
 ---
 
-## 3. Local (Docker Compose)
-
-```bash
-cd showcase
-cp ../data/checkpoints/ppo_1m/best.zip backend/best.zip
-docker compose up --build
-# frontend → http://localhost:3000   backend → http://localhost:8000
-```
-
-## 4. Local (without Docker)
+## 3. Local development
 
 ```bash
 # Backend
 cd showcase/backend
 pip install -r requirements.txt
-cp ../../data/checkpoints/ppo_1m/best.zip ./best.zip   # or set MODEL_PATH
+cp ../../data/checkpoints/ppo_1m/best.zip ./best.zip   # or set MODEL_PATH / MODEL_URL
 uvicorn main:app --reload --port 8000
 
 # Frontend (new terminal)

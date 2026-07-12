@@ -11,7 +11,6 @@ and view the training curves.
 showcase/
 ├── backend/      # FastAPI — loads ppo_1m/best.zip once, runs inference, returns MP4 + metrics
 ├── frontend/     # Next.js (App Router) + Tailwind + Framer Motion + Recharts
-├── docker-compose.yml
 └── deployment.md
 ```
 
@@ -24,7 +23,7 @@ showcase/
 - **Training dashboard** — interactive reward / loss / FPS / learning-rate curves.
 - **Research findings** — the honest negative results, with evidence and interpretation.
 
-## Quick start (local, no Docker)
+## Quick start (local)
 
 ```bash
 # 1. Backend
@@ -38,12 +37,6 @@ cd showcase/frontend
 npm install
 cp .env.example .env.local                                # NEXT_PUBLIC_API_URL=http://localhost:8000
 npm run dev                                               # http://localhost:3000
-```
-
-Or the whole stack with Docker:
-
-```bash
-cd showcase && cp ../data/checkpoints/ppo_1m/best.zip backend/best.zip && docker compose up --build
 ```
 
 ## Backend API
