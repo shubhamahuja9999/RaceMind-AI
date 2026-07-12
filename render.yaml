@@ -34,5 +34,8 @@ services:
         value: /tmp/best.zip
       - key: VIDEO_DIR
         value: /tmp/videos
+      # Steps per demo episode. The free 0.1-CPU instance runs ~2-3 steps/sec, so
+      # keep this modest: 300 -> ~2 min first render (then cached + warmed at
+      # startup). Lower to 150-200 for snappier cold runs; raise on a paid instance.
       - key: MAX_STEPS
-        value: "600"
+        value: "300"

@@ -32,15 +32,27 @@ MODEL_INFO = {
 }
 
 
+# Only one inference at a time — prevents abuse / CPU overload. Defined before the
+# lifespan so the startup cache-warmer can hold it too (a warm run and a user run
+# must never overlap and double the memory/CPU on the tiny free instance).
+_inference_lock = threading.Lock()
+
+# Demos to pre-render at startup so the first user click hits a warm cache. These
+# are exactly the frontend's defaults (Run AI + Compare use seed 1028).
+_WARM_DEMOS = (("best", 1028), ("random", 1028))
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Load the model once, in a background thread.
+    """Load the model once, then warm the default demos — in a background thread.
 
-    Loading (and possibly downloading) the model can take tens of seconds. Doing
-    it in the background lets the HTTP port open immediately, so the platform's
-    health check passes right away instead of timing out during startup. Until
-    the model is ready, ``/api/health`` reports ``model_loaded: false`` and
-    ``/api/run`` returns 503 (the frontend handles this gracefully).
+    Loading (and possibly downloading) the model can take tens of seconds, and on
+    a slow free-tier CPU a single episode can take minutes. Doing all of this in
+    the background lets the HTTP port open immediately (so the platform health
+    check passes right away) and pre-renders the default demos, so the first real
+    user click returns an instant cached result instead of waiting minutes. Until
+    a demo is ready, ``/api/run`` for it runs on demand (or the frontend falls
+    back to its bundled cached clip).
     """
     def _load() -> None:
         try:
@@ -48,6 +60,14 @@ async def lifespan(app: FastAPI):
             print("[startup] model loaded")
         except Exception as exc:  # noqa: BLE001 — surface a clear startup error
             print(f"[startup] model load failed: {exc}")
+            return
+        for policy, seed in _WARM_DEMOS:
+            try:
+                with _inference_lock:
+                    engine.run_episode(policy=policy, seed=seed)
+                print(f"[startup] warmed {policy} seed={seed}")
+            except Exception as exc:  # noqa: BLE001
+                print(f"[startup] warm {policy} seed={seed} failed: {exc}")
 
     threading.Thread(target=_load, daemon=True).start()
     yield
@@ -94,10 +114,6 @@ def health() -> dict:
 def model_info() -> dict:
     """Static metadata about the deployed model."""
     return {**MODEL_INFO, "model_loaded": engine.loaded}
-
-
-# Only one inference at a time — prevents abuse / GPU/CPU overload.
-_inference_lock = threading.Lock()
 
 
 def _run(policy: str, seed: int) -> dict:
