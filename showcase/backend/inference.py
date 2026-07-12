@@ -80,13 +80,33 @@ class InferenceEngine:
         self._model = PPO.load(str(self.model_path), device="cpu")
 
     def _download_model(self) -> None:
-        """Download the model from ``model_url`` to ``model_path``."""
+        """Download the model from ``model_url`` to ``model_path`` robustly.
+
+        Uses a browser-like User-Agent (GitHub rejects the default urllib agent),
+        follows redirects (release assets 302 to a signed URL), writes atomically
+        and validates the downloaded size.
+        """
+        import shutil
         import urllib.request
 
+        assert self.model_url is not None
         self.model_path.parent.mkdir(parents=True, exist_ok=True)
+        tmp_path = self.model_path.with_suffix(".download")
+        request = urllib.request.Request(
+            self.model_url, headers={"User-Agent": "RaceMind-AI/1.0"}
+        )
         print(f"[startup] downloading model from {self.model_url}")
-        urllib.request.urlretrieve(self.model_url, str(self.model_path))
-        print(f"[startup] model saved to {self.model_path}")
+        with urllib.request.urlopen(request, timeout=180) as response, open(tmp_path, "wb") as out:
+            shutil.copyfileobj(response, out)
+
+        if tmp_path.stat().st_size < 1024:
+            tmp_path.unlink(missing_ok=True)
+            raise RuntimeError(
+                f"Downloaded model is too small ({tmp_path.name}); check MODEL_URL."
+            )
+        tmp_path.replace(self.model_path)
+        print(f"[startup] model saved to {self.model_path} "
+              f"({self.model_path.stat().st_size} bytes)")
 
     @property
     def loaded(self) -> bool:

@@ -22,39 +22,55 @@ repo. Make it available to the backend in one of two ways:
   set `MODEL_URL` to its asset URL; the backend downloads it on first boot.
 - **Or bake it in.** Copy it next to the backend and set `MODEL_PATH=./best.zip`.
 
-> ⚠️ **Use the Docker runtime, not the native Python buildpack.** The native
-> buildpack defaults to a too-new Python and must compile Box2D from source — that
-> is exactly what caused the `box2d`/Python-3.14 build failure. The provided
-> `Dockerfile` pins Python 3.12 and installs `swig` + `ffmpeg`, so it just works.
-> (`requirements.txt` no longer pins a bare `box2d`; `gymnasium[box2d]` supplies the
-> physics backend. A `runtime.txt` pins Python 3.12 if you must use the native path.)
-
 ### Environment variables
 
 | Variable | Example | Purpose |
 | --- | --- | --- |
-| `MODEL_URL` | `https://github.com/shubhamahuja9999/RaceMind-AI/releases/download/v1.0.0/best.zip` | Download the model on startup (if `MODEL_PATH` is missing) |
-| `MODEL_PATH` | `/app/best.zip` | Where the model lives / is downloaded to |
-| `VIDEO_DIR` | `/app/videos` | Where MP4s are written/served |
+| `PYTHON_VERSION` | `3.12.7` | **Required for native** — pins Python 3.12 (pygame has no 3.14 wheel) |
+| `MODEL_URL` | `https://github.com/shubhamahuja9999/RaceMind-AI/releases/download/v1.0.0/best.zip` | Download the model on startup (the model is git-ignored) |
+| `MODEL_PATH` | `/tmp/best.zip` | Where the model is downloaded to |
+| `VIDEO_DIR` | `/tmp/videos` | Where MP4s are written/served |
+| `SDL_VIDEODRIVER` | `dummy` | Headless rendering (also set in code) |
 | `MAX_STEPS` | `600` | Steps per demo episode (snappier demo) |
 | `CORS_ORIGINS` | `https://your-app.vercel.app` | Allowed frontend origin(s) |
-| `PORT` | `8000` | Provided by the host on most platforms |
+| `PORT` | (auto) | Injected by the host |
 
-### Render (Docker)
+### Render — native Python (no Docker) ✅ recommended
 
-1. New → **Web Service** → connect the repo, **Root Directory** = `showcase/backend`.
-2. **Runtime / Language: Docker** (Render auto-detects the `Dockerfile`). Do **not**
-   pick the Python buildpack.
-3. Add the environment variables above (at minimum `MODEL_URL` and `CORS_ORIGINS`).
-4. Instance type: use at least the **512 MB+** tier — PyTorch + CarRacing inference
-   is memory-heavy; the free tier may OOM.
-5. Deploy. Note the URL, e.g. `https://racemind-api.onrender.com`.
+The included `render.yaml` does this automatically: **New → Blueprint → select the
+repo** → it creates the service with the right Python version and build command.
+Then set the two secret env vars (`MODEL_URL`, `CORS_ORIGINS`) in the dashboard.
+
+To configure a service **by hand** instead, use these settings — they are the fix
+for the pygame/box2d/Python-3.14 build failures:
+
+- **Runtime / Language:** Python
+- **Root Directory:** `showcase/backend`
+- **Build Command:**
+  ```
+  pip install --upgrade pip && pip install swig && pip install torch --index-url https://download.pytorch.org/whl/cpu && pip install -r requirements.txt
+  ```
+- **Start Command:** `uvicorn main:app --host 0.0.0.0 --port $PORT`
+- **Environment:** `PYTHON_VERSION=3.12.7`, `SDL_VIDEODRIVER=dummy`, `MODEL_URL=…`,
+  `CORS_ORIGINS=…`, `MODEL_PATH=/tmp/best.zip`, `VIDEO_DIR=/tmp/videos`
+- **Instance:** 512 MB+ (PyTorch + CarRacing is memory-heavy; the free tier may OOM)
+
+Why this works: `PYTHON_VERSION=3.12.7` makes pip use pygame's **prebuilt wheel**
+(instead of compiling it and needing SDL), and installing **`swig` first** lets
+Box2D compile. CPU-only torch avoids a multi-GB CUDA download.
+
+### Docker (alternative)
+
+A `showcase/backend/Dockerfile` is also provided if you prefer a container: set the
+service **Runtime = Docker**. It installs the same deps with system libraries baked
+in. Not required — the native path above is the recommended one here.
 
 ### Railway / Fly.io
 
-- **Railway:** new service from repo → root `showcase/backend` → **Dockerfile** → set env vars.
-- **Fly.io:** `fly launch` in `showcase/backend` (detects the Dockerfile), set
-  secrets with `fly secrets set CORS_ORIGINS=... MODEL_URL=...`, then `fly deploy`.
+- **Railway:** new service → root `showcase/backend`. Use the same Build Command and
+  `PYTHON_VERSION=3.12.7` as above (Nixpacks/native), or the `Dockerfile`.
+- **Fly.io:** `fly launch` in `showcase/backend`; set secrets with
+  `fly secrets set CORS_ORIGINS=... MODEL_URL=...`.
 
 > First request runs an episode on CPU (~10–20 s) and caches the MP4; subsequent
 > requests for the same `(policy, seed)` are instant. On free tiers the service may

@@ -34,11 +34,22 @@ MODEL_INFO = {
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Load the model once on startup (never per request)."""
-    try:
-        engine.load()
-    except Exception as exc:  # noqa: BLE001 — surface a clear startup error
-        print(f"[startup] model load failed: {exc}")
+    """Load the model once, in a background thread.
+
+    Loading (and possibly downloading) the model can take tens of seconds. Doing
+    it in the background lets the HTTP port open immediately, so the platform's
+    health check passes right away instead of timing out during startup. Until
+    the model is ready, ``/api/health`` reports ``model_loaded: false`` and
+    ``/api/run`` returns 503 (the frontend handles this gracefully).
+    """
+    def _load() -> None:
+        try:
+            engine.load()
+            print("[startup] model loaded")
+        except Exception as exc:  # noqa: BLE001 — surface a clear startup error
+            print(f"[startup] model load failed: {exc}")
+
+    threading.Thread(target=_load, daemon=True).start()
     yield
 
 
