@@ -79,6 +79,20 @@ class InferenceEngine:
             self._download_model()
         self._model = PPO.load(str(self.model_path), device="cpu")
 
+        # Guard against the wrong checkpoint being deployed. The showcase model is
+        # the single-frame baseline (obs (3, 96, 96) after SB3's image transpose).
+        # A frame-stacked experiment checkpoint has obs (12, 96, 96) and would
+        # crash every /api/run with a cryptic shape error — surface it loudly here.
+        shape = tuple(getattr(self._model.observation_space, "shape", ()) or ())
+        if shape != (3, 96, 96):
+            print(
+                f"[startup] WARNING: loaded model expects observation shape {shape}, "
+                f"but this backend renders single frames (3, 96, 96). You likely "
+                f"uploaded the wrong checkpoint to MODEL_URL — use "
+                f"data/checkpoints/ppo_1m/best.zip (the (3, 96, 96) baseline)."
+            )
+        print(f"[startup] model observation_space={self._model.observation_space}")
+
     def _download_model(self) -> None:
         """Download the model from ``model_url`` to ``model_path`` robustly.
 
@@ -125,6 +139,15 @@ class InferenceEngine:
 
         if policy != "random" and self._model is None:
             raise RuntimeError("Model not loaded.")
+
+        if policy != "random":
+            shape = tuple(getattr(self._model.observation_space, "shape", ()) or ())
+            if shape != (3, 96, 96):
+                raise RuntimeError(
+                    f"Deployed model expects observation shape {shape}, but this "
+                    f"backend feeds single frames. Wrong checkpoint at MODEL_URL — "
+                    f"upload the ppo_1m baseline (obs (3, 96, 96))."
+                )
 
         max_steps = max_steps or self.default_max_steps
         env = self._make_env()

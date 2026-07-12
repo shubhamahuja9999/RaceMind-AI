@@ -55,13 +55,23 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="RaceMind AI Research Lab", version="1.0.0", lifespan=lifespan)
 
-_origins = os.getenv("CORS_ORIGINS", "*").split(",")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[o.strip() for o in _origins],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Parse CORS_ORIGINS: comma-separated, whitespace- and trailing-slash-tolerant
+# (a browser Origin never has a trailing slash, so a configured "…app/" would
+# silently never match and every request would fail its preflight).
+_origins = [
+    o.strip().rstrip("/")
+    for o in os.getenv("CORS_ORIGINS", "*").split(",")
+    if o.strip()
+]
+_cors: dict = {"allow_methods": ["*"], "allow_headers": ["*"]}
+if not _origins or "*" in _origins:
+    _cors["allow_origins"] = ["*"]
+else:
+    # Allow the configured origins AND any Vercel preview deployment, so the
+    # showcase works from preview URLs (…-git-branch-user.vercel.app) too.
+    _cors["allow_origins"] = _origins
+    _cors["allow_origin_regex"] = r"https://[a-z0-9-]+\.vercel\.app"
+app.add_middleware(CORSMiddleware, **_cors)
 
 engine.video_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/videos", StaticFiles(directory=str(engine.video_dir)), name="videos")

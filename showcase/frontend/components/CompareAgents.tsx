@@ -22,9 +22,12 @@ export function CompareAgents() {
       if (mode === "random") setRandom(await runPolicy("random"));
       else if (mode === "best") setBest(await runPolicy("best"));
       else {
-        const [r, b] = await Promise.all([runPolicy("random"), runPolicy("best")]);
-        setRandom(r);
-        setBest(b);
+        // Run sequentially, not in parallel: the backend allows one inference at
+        // a time (a second concurrent request returns 429, and two CarRacing
+        // rollouts at once would OOM the free tier). Each result renders as it
+        // arrives.
+        setRandom(await runPolicy("random"));
+        setBest(await runPolicy("best"));
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Backend unavailable.");
