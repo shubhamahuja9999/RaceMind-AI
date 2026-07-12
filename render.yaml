@@ -1,0 +1,27 @@
+# Render Blueprint for the RaceMind AI Research Lab backend.
+# Deploy via Render → New → Blueprint (select this repo). This forces the DOCKER
+# runtime, which installs pygame/box2d/ffmpeg as prebuilt wheels + system deps —
+# avoiding the native Python buildpack's source-build failures (pygame/SDL, box2d).
+services:
+  - type: web
+    name: racemind-api
+    runtime: docker
+    rootDir: showcase/backend
+    dockerfilePath: ./Dockerfile
+    plan: starter          # 512 MB+ recommended; the free plan may OOM under torch
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      # Set this in the dashboard to a public model URL (e.g. a GitHub release asset):
+      #   https://github.com/shubhamahuja9999/RaceMind-AI/releases/download/v1.0.0/best.zip
+      - key: MODEL_URL
+        sync: false
+      # Your deployed frontend origin, e.g. https://racemind-ai.vercel.app
+      - key: CORS_ORIGINS
+        sync: false
+      - key: MAX_STEPS
+        value: "600"
+      - key: MODEL_PATH
+        value: /app/best.zip
+      - key: VIDEO_DIR
+        value: /app/videos

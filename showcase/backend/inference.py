@@ -11,15 +11,20 @@ package), so the backend deploys independently — you only need the model file.
 from __future__ import annotations
 
 import os
-import time
-from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Optional
 
-import gymnasium as gym
-import imageio.v2 as imageio
-import numpy as np
-from stable_baselines3 import PPO
+# Headless rendering: use SDL's dummy video driver so pygame (via CarRacing's
+# rgb_array render) works on a server with no display. Set before importing gym.
+os.environ.setdefault("SDL_VIDEODRIVER", "dummy")
+
+import time  # noqa: E402
+from dataclasses import dataclass, field  # noqa: E402
+from pathlib import Path  # noqa: E402
+from typing import Optional  # noqa: E402
+
+import gymnasium as gym  # noqa: E402
+import imageio.v2 as imageio  # noqa: E402
+import numpy as np  # noqa: E402
+from stable_baselines3 import PPO  # noqa: E402
 
 ENV_ID = "CarRacing-v3"
 MAX_EPISODE_STEPS = 1000

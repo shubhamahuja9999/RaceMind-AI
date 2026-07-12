@@ -18,7 +18,8 @@ COPY . .
 ENV MODEL_PATH=/app/best.zip \
     VIDEO_DIR=/app/videos \
     MAX_STEPS=600 \
-    PORT=8000
+    PORT=8000 \
+    SDL_VIDEODRIVER=dummy
 
 EXPOSE 8000
 CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT}"]
