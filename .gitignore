@@ -53,6 +53,11 @@ research/reward_analysis/*/reward_log.csv
 # Exception: the small committed showcase fallback demo (played when the backend is asleep).
 !showcase/frontend/public/demo.mp4
 
+# --- Generated frontend audit reports (regenerable, not source; they were
+#     inflating GitHub's language stats to look like an HTML project) ---
+showcase/frontend/lighthouse.report.html
+showcase/frontend/lighthouse.report.json
+
 # --- OS / editor noise ---
 .DS_Store
 Thumbs.db

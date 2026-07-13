@@ -1,3 +1,9 @@
 # Ensure shell scripts always use LF so they run on Linux hosts (Render, etc.),
 # even when committed from Windows.
 *.sh text eol=lf
+
+# --- GitHub Linguist: keep the language bar honest (Python-first) ---
+# Generated audit reports and the npm lockfile are not source code; excluding them
+# stops a 700 KB Lighthouse HTML report from making an RL project look like a web app.
+showcase/frontend/lighthouse.report.* linguist-generated=true
+showcase/frontend/package-lock.json  linguist-generated=true
